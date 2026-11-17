@@ -26,6 +26,7 @@ const eventSchema = new mongoose.Schema({
   eligibility: { type: String, enum: ['all', 'internal', 'external'], required: true, default: 'all' },
   ticketType: { type: String, enum: ['free', 'paid'], required: true, default: 'free' },
   price: { type: Number, min: 0, default: 0 },
+  attendanceEnabled: { type: Boolean, default: true },
   status: { type: String, enum: ['draft', 'pending_approval', 'published', 'changes_requested', 'rejected', 'cancelled', 'completed'], required: true },
   reviewFeedback: { type: String, trim: true, maxlength: 1000, default: '' },
   reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },

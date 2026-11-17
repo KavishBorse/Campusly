@@ -347,7 +347,7 @@ a.side-nav-item { text-decoration: none; }
 .public-session-row-main strong { color: #35445d; font-size: 13px; line-height: 1.45; }
 .public-session-row-main span { color: #64718a; font-size: 12px; line-height: 1.5; text-align: right; }
 .public-session-row small { color: #78859a; font-size: 11px; line-height: 1.5; }
-.event-policy-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.event-policy-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
 .event-policy-grid > div { display: flex; flex-direction: column; gap: 7px; min-height: 70px; padding: 12px; border-radius: 9px; background: #f7f8fb; }
 .event-policy-grid small, .booking-ticket small { color: #929caf; font-size: 8px; font-weight: 700; letter-spacing: 1px; }
 .event-policy-grid strong { color: #52617a; font-size: 10px; line-height: 1.45; }

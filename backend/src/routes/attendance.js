@@ -40,6 +40,7 @@ router.post('/events/:eventId/sessions', ...auth, requireRole('admin', 'club'), 
     if (!mongoose.isValidObjectId(req.params.eventId)) return res.status(404).json({ error: 'Event not found.', code: 'NOT_FOUND' });
     const event = await Event.findById(req.params.eventId);
     if (!event || !await mayManage(req.user, event)) return res.status(404).json({ error: 'Event not found.', code: 'NOT_FOUND' });
+    if (event.attendanceEnabled === false) return res.status(409).json({ error: 'Attendance is disabled for this event.', code: 'ATTENDANCE_DISABLED' });
     if (['cancelled', 'completed'].includes(event.status)) return res.status(409).json({ error: 'Sessions cannot be added to a cancelled or completed event.', code: 'EVENT_LOCKED' });
     const title = typeof req.body?.title === 'string' ? req.body.title.trim() : '';
     const date = new Date(req.body?.date);
@@ -63,6 +64,7 @@ router.patch('/events/:eventId/sessions/:sessionId', ...auth, requireRole('admin
     if (!mongoose.isValidObjectId(req.params.eventId)) return res.status(404).json({ error: 'Event not found.', code: 'NOT_FOUND' });
     const event = await Event.findById(req.params.eventId);
     if (!event || !await mayManage(req.user, event)) return res.status(404).json({ error: 'Event not found.', code: 'NOT_FOUND' });
+    if (event.attendanceEnabled === false) return res.status(409).json({ error: 'Attendance is disabled for this event.', code: 'ATTENDANCE_DISABLED' });
     const session = event.sessions.id(req.params.sessionId);
     if (!session) return res.status(404).json({ error: 'Session not found.', code: 'NOT_FOUND' });
     if (req.body?.status !== 'cancelled') return res.status(400).json({ error: 'Sessions can only be cancelled here.', code: 'INVALID_INPUT' });
@@ -80,6 +82,7 @@ router.post('/events/:eventId/sessions/:sessionId/qr-token', ...auth, requireRol
     if (!mongoose.isValidObjectId(req.params.eventId)) return res.status(404).json({ error: 'Event not found.', code: 'NOT_FOUND' });
     const event = await Event.findById(req.params.eventId);
     if (!event || !await mayManage(req.user, event)) return res.status(404).json({ error: 'Event not found.', code: 'NOT_FOUND' });
+    if (event.attendanceEnabled === false) return res.status(409).json({ error: 'Attendance is disabled for this event.', code: 'ATTENDANCE_DISABLED' });
     const session = event.sessions.id(req.params.sessionId);
     if (!session || session.status === 'cancelled') return res.status(404).json({ error: 'Active session not found.', code: 'NOT_FOUND' });
     const now = new Date();
@@ -100,7 +103,7 @@ router.post('/attendance/scan', ...auth, requireRole('student', 'external'), asy
     const event = await Event.findById(qr.event);
     const session = event?.sessions.id(qr.sessionId);
     const now = new Date();
-    if (!event || event.status !== 'published' || !session || session.status === 'cancelled' || now < session.attendanceOpensAt || now > session.attendanceClosesAt) {
+    if (!event || event.attendanceEnabled === false || event.status !== 'published' || !session || session.status === 'cancelled' || now < session.attendanceOpensAt || now > session.attendanceClosesAt) {
       return res.status(409).json({ error: 'This attendance session is closed.', code: 'SESSION_CLOSED' });
     }
     const registration = await Registration.findOne({ event: event._id, user: req.user._id, status: 'confirmed' });
@@ -118,18 +121,54 @@ router.post('/attendance/scan', ...auth, requireRole('student', 'external'), asy
 router.get('/student/attendance', ...auth, requireRole('student', 'external'), async (req, res, next) => {
   try {
     const registrations = await Registration.find({ user: req.user._id, status: 'confirmed' }).select('event').lean();
-    const events = await Event.find({ _id: { $in: registrations.map((item) => item.event) } }).select('title startsAt sessions status').lean();
+    const events = await Event.find({ _id: { $in: registrations.map((item) => item.event) } }).select('title startsAt endsAt sessions status attendanceEnabled').lean();
     const records = await Attendance.find({ user: req.user._id, status: 'present' }).select('event sessionId recordedAt').lean();
     const recordSet = new Set(records.map((item) => `${item.event}:${item.sessionId}`));
     const now = new Date();
-    const summaries = events.map((event) => {
-      const completed = event.status !== 'cancelled' ? event.sessions.filter((session) => session.status !== 'cancelled' && session.attendanceClosesAt <= now) : [];
+    const summaries = events.filter((event) => event.attendanceEnabled !== false).map((event) => {
+      const completed = event.status !== 'cancelled' ? (event.sessions ?? []).filter((session) => session.status !== 'cancelled' && session.attendanceClosesAt <= now) : [];
       const attended = completed.filter((session) => recordSet.has(`${event._id}:${session._id}`));
       const eligibleDays = new Set(completed.map((session) => new Date(session.date).toISOString().slice(0, 10)));
       const attendedDays = new Set(attended.map((session) => new Date(session.date).toISOString().slice(0, 10)));
-      return { eventId: event._id, title: event.title, sessionsAttended: attended.length, sessionsOccurred: completed.length, sessionPercent: completed.length ? Math.round(attended.length / completed.length * 100) : null, daysAttended: attendedDays.size, daysOccurred: eligibleDays.size, dailyPercent: eligibleDays.size ? Math.round(attendedDays.size / eligibleDays.size * 100) : null };
+      return { eventId: event._id, title: event.title, sessionsAttended: attended.length, sessionsOccurred: completed.length, sessionPercent: completed.length ? Math.round(attended.length / completed.length * 100) : null, daysAttended: attendedDays.size, daysOccurred: eligibleDays.size, dailyPercent: eligibleDays.size ? Math.round(attendedDays.size / eligibleDays.size * 100) : null, certificateAvailable: event.endsAt <= now && event.status !== 'cancelled' && attended.length > 0 };
     });
     return res.json({ attendance: summaries });
+  } catch (error) { return next(error); }
+});
+
+router.get('/student/attendance/:eventId/letter', ...auth, requireRole('student', 'external'), async (req, res, next) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.eventId)) return res.status(404).json({ error: 'Event not found.', code: 'NOT_FOUND' });
+    const event = await Event.findById(req.params.eventId).select('title venue startsAt endsAt status sessions attendanceEnabled').lean();
+    if (!event || event.attendanceEnabled === false) return res.status(404).json({ error: 'Attendance letter not found.', code: 'NOT_FOUND' });
+    if (event.status === 'cancelled') return res.status(409).json({ error: 'Attendance letters are unavailable for cancelled events.', code: 'EVENT_CANCELLED' });
+    const issuedAt = new Date();
+    if (event.endsAt > issuedAt) return res.status(409).json({ error: 'The attendance letter will be available after the event ends.', code: 'EVENT_NOT_FINISHED' });
+
+    const completedSessions = (event.sessions ?? []).filter((session) => session.status !== 'cancelled' && session.endsAt <= issuedAt);
+    const completedSessionIds = completedSessions.map((session) => session._id);
+    const records = completedSessionIds.length
+      ? await Attendance.find({ event: event._id, user: req.user._id, status: 'present', sessionId: { $in: completedSessionIds } }).select('sessionId').lean()
+      : [];
+    const attendedIds = new Set(records.map((record) => String(record.sessionId)));
+    if (!attendedIds.size) return res.status(403).json({ error: 'An attendance record is required before a letter can be issued.', code: 'ATTENDANCE_REQUIRED' });
+
+    const attendedSessions = completedSessions
+      .filter((session) => attendedIds.has(String(session._id)))
+      .map((session) => ({ title: session.title, date: session.date, startsAt: session.startsAt, endsAt: session.endsAt }));
+    return res.json({ letter: {
+      studentName: req.user.displayName,
+      enrollmentId: req.user.accountType === 'internal' ? req.user.enrollmentId ?? null : null,
+      collegeName: req.user.accountType === 'external' ? req.user.collegeName ?? null : null,
+      eventTitle: event.title,
+      venue: event.venue,
+      eventStartsAt: event.startsAt,
+      eventEndsAt: event.endsAt,
+      sessionsAttended: attendedSessions.length,
+      sessionsOccurred: completedSessions.length,
+      attendedSessions,
+      issuedAt,
+    } });
   } catch (error) { return next(error); }
 });
 
@@ -153,6 +192,7 @@ router.post('/events/:eventId/attendance/correction', ...auth, requireRole('admi
     }
     const event = await Event.findById(req.params.eventId);
     if (!event || !await mayManage(req.user, event)) return res.status(404).json({ error: 'Event not found.', code: 'NOT_FOUND' });
+    if (event.attendanceEnabled === false) return res.status(409).json({ error: 'Attendance is disabled for this event.', code: 'ATTENDANCE_DISABLED' });
     const session = event.sessions.id(sessionId);
     if (!session) return res.status(404).json({ error: 'Session not found.', code: 'NOT_FOUND' });
     if (session.status === 'cancelled' || session.attendanceClosesAt > new Date()) return res.status(409).json({ error: 'Corrections are limited to completed, non-cancelled sessions.', code: 'SESSION_NOT_COMPLETED' });

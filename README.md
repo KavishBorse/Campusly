@@ -127,6 +127,7 @@ Two demo official events are seeded: a free event and a paid event with server-g
 
 - Admin creates official events, provisions club workspaces, reviews club submissions, manages account status, cancels bookings/events, sends campus notifications, and exports bookings/attendance CSV files.
 - Club accounts create event drafts, submit them for approval, then manage their own published event sessions, registrations, rotating QR codes, attendance corrections, and participant notifications.
+- Event creators choose whether to track attendance. For tracked events, participants with a recorded check-in can open a formatted attendance letter after the event ends and print or save it as a PDF.
 - Internal and verified external students browse eligible published events, reserve free or simulated paid tickets, cancel bookings, scan current session QR codes, view attendance summaries, and read notifications.
 - External accounts confirm control of any valid email address with an OTP. Internal MIT students can link a verified college email only when its local part matches their stored enrollment ID.
 - API authorization and ownership checks enforce these rules even when a client bypasses the UI.

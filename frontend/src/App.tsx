@@ -4,6 +4,7 @@ import { useAuth, type Role } from './auth/AuthContext';
 import { Dashboard } from './pages/Dashboard';
 import { LoginPage } from './pages/LoginPage';
 import { ChangePasswordPage } from './pages/ChangePasswordPage';
+import { AttendanceLetterPage } from './pages/AttendanceLetterPage';
 import { LoadingScreen } from './ui/LoadingScreen';
 import { EventDetailPage, EventFormPage, EventListPage } from './pages/EventsWorkspacePage';
 import { AccountsPage, BookingsPage, NotificationsPage, StudentAttendancePage } from './pages/WorkspaceToolsPage';
@@ -68,6 +69,7 @@ export function App() {
       <Route path="/student/events/:eventId" element={<WorkspaceRoute role="student" allowed={['student', 'external']}><EventDetailPage role="student" /></WorkspaceRoute>} />
       <Route path="/student/bookings" element={<WorkspaceRoute role="student" allowed={['student', 'external']}><BookingsPage role="student" /></WorkspaceRoute>} />
       <Route path="/student/attendance" element={<WorkspaceRoute role="student" allowed={['student', 'external']}><StudentAttendancePage /></WorkspaceRoute>} />
+      <Route path="/student/attendance/:eventId/letter" element={<ProtectedRoute allowed={['student', 'external']}><AttendanceLetterPage /></ProtectedRoute>} />
       <Route path="/student/notifications" element={<WorkspaceRoute role="student" allowed={['student', 'external']}><NotificationsPage role="student" /></WorkspaceRoute>} />
       <Route path="*" element={<HomeRedirect />} />
     </Routes>

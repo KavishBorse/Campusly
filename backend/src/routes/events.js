@@ -81,11 +81,12 @@ function eventPayload(body) {
   const eligibility = body?.eligibility;
   const ticketType = body?.ticketType;
   const price = ticketType === 'free' ? 0 : Number(body?.price);
+  const attendanceEnabled = body?.attendanceEnabled === undefined ? true : body.attendanceEnabled;
   const validDates = startsAt && endsAt && registrationDeadline && !Number.isNaN(+startsAt) && !Number.isNaN(+endsAt) && !Number.isNaN(+registrationDeadline) && registrationDeadline <= startsAt && startsAt < endsAt;
-  if (title.length < 5 || title.length > 140 || description.length < 20 || description.length > 5000 || venue.length < 2 || venue.length > 240 || !validDates || !Number.isInteger(capacity) || capacity < 1 || capacity > 100000 || !['all', 'internal', 'external'].includes(eligibility) || !['free', 'paid'].includes(ticketType) || !Number.isFinite(price) || price < 0 || price > 10000000 || (ticketType === 'paid' && price <= 0)) {
-    return { error: 'Check the title, description, venue, dates, capacity, eligibility, and ticket price.' };
+  if (title.length < 5 || title.length > 140 || description.length < 20 || description.length > 5000 || venue.length < 2 || venue.length > 240 || !validDates || !Number.isInteger(capacity) || capacity < 1 || capacity > 100000 || !['all', 'internal', 'external'].includes(eligibility) || !['free', 'paid'].includes(ticketType) || !Number.isFinite(price) || price < 0 || price > 10000000 || (ticketType === 'paid' && price <= 0) || typeof attendanceEnabled !== 'boolean') {
+    return { error: 'Check the event details, dates, capacity, eligibility, ticket price, and attendance setting.' };
   }
-  return { value: { title, description, venue, startsAt, endsAt, registrationDeadline, capacity, eligibility, ticketType, price } };
+  return { value: { title, description, venue, startsAt, endsAt, registrationDeadline, capacity, eligibility, ticketType, price, attendanceEnabled } };
 }
 
 router.get('/manage', ...auth, requireRole('admin', 'club'), async (req, res, next) => {
@@ -210,10 +211,14 @@ router.patch('/:eventId', ...auth, requireRole('admin', 'club'), async (req, res
       return res.status(400).json({ error: 'Updated event dates and registration deadline must be in the future.', code: 'EVENT_DATES_IN_PAST' });
     }
     if (parsed.value.capacity < event.reservedCount) return res.status(409).json({ error: 'Capacity cannot be lower than the number of current reservations.', code: 'CAPACITY_BELOW_RESERVED' });
+    if (event.attendanceEnabled !== false && !parsed.value.attendanceEnabled) {
+      const hasAttendance = await Attendance.exists({ event: event._id });
+      if (event.sessions.length || hasAttendance) return res.status(409).json({ error: 'Attendance cannot be disabled after sessions or attendance records exist.', code: 'ATTENDANCE_ALREADY_CONFIGURED' });
+    }
     if (event.sessions.some((session) => session.startsAt < parsed.value.startsAt || session.endsAt > parsed.value.endsAt)) {
       return res.status(409).json({ error: 'Update or cancel scheduled sessions before changing the event dates around them.', code: 'SESSION_OUTSIDE_EVENT' });
     }
-    const materialFields = ['startsAt', 'endsAt', 'registrationDeadline', 'venue', 'capacity', 'price', 'ticketType', 'eligibility'];
+    const materialFields = ['startsAt', 'endsAt', 'registrationDeadline', 'venue', 'capacity', 'price', 'ticketType', 'eligibility', 'attendanceEnabled'];
     const changedMaterially = materialFields.some((key) => String(event[key]) !== String(parsed.value[key]));
     Object.assign(event, parsed.value);
     if (req.user.role === 'club' && event.status === 'published' && changedMaterially) {
