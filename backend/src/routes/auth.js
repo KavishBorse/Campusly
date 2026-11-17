@@ -295,10 +295,6 @@ router.patch('/password', requireAuth, async (req, res, next) => {
         code: 'WEAK_PASSWORD',
       });
     }
-    if (currentPassword === newPassword) {
-      return res.status(400).json({ error: 'Choose a password you have not used for this account.', code: 'REUSED_PASSWORD' });
-    }
-
     const user = await User.findById(req.user._id).select('+passwordHash');
     const matches = user && (await bcrypt.compare(currentPassword, user.passwordHash));
     if (!matches) {
