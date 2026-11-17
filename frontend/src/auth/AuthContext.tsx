@@ -7,6 +7,7 @@ export type CurrentUser = {
   username: string;
   displayName: string;
   email: string | null;
+  emailVerified: boolean;
   enrollmentId: string | null;
   role: Role;
   accountType: 'staff' | 'club' | 'internal' | 'external';
@@ -65,8 +66,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
-    await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
-    setUser(null);
+    try {
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+    } catch {
+      // Clear the local workspace even if the API is temporarily unreachable.
+    } finally {
+      setUser(null);
+    }
   }, []);
 
   const changePassword = useCallback(async (currentPassword: string, newPassword: string) => {

@@ -10,6 +10,7 @@ import { AccountsPage, BookingsPage, NotificationsPage, StudentAttendancePage } 
 import { PublicEventDetailPage, PublicEventsPage } from './pages/PublicEventsPage';
 import { ExternalSignupPage } from './pages/ExternalSignupPage';
 import { ScanPage } from './pages/ScanPage';
+import { StudentEmailPage } from './pages/StudentEmailPage';
 import { WorkspaceFrame } from './ui/WorkspaceFrame';
 
 function rolePath(role: Role) {
@@ -31,7 +32,7 @@ function ProtectedRoute({ children, allowed }: { children: ReactNode; allowed?: 
 function HomeRedirect() {
   const { user, loading } = useAuth();
   if (loading) return <LoadingScreen />;
-  if (!user) return <Navigate to="/events" replace />;
+  if (!user) return <PublicEventsPage />;
   return <Navigate to={user.mustChangePassword ? '/change-password' : rolePath(user.role)} replace />;
 }
 
@@ -49,6 +50,7 @@ export function App() {
       <Route path="/events/:eventId" element={<PublicEventDetailPage />} />
       <Route path="/change-password" element={<ProtectedRoute><ChangePasswordPage /></ProtectedRoute>} />
       <Route path="/scan" element={<ProtectedRoute allowed={['student', 'external']}><ScanPage /></ProtectedRoute>} />
+      <Route path="/student/email" element={<ProtectedRoute allowed={['student']}><StudentEmailPage /></ProtectedRoute>} />
       <Route path="/admin" element={<ProtectedRoute allowed={['admin']}><Dashboard role="admin" /></ProtectedRoute>} />
       <Route path="/admin/events" element={<WorkspaceRoute role="admin" allowed={['admin']}><EventListPage role="admin" /></WorkspaceRoute>} />
       <Route path="/admin/events/new" element={<WorkspaceRoute role="admin" allowed={['admin']}><EventFormPage role="admin" /></WorkspaceRoute>} />

@@ -37,8 +37,10 @@ router.get('/admin/reports/attendance.csv', ...auth, requireRole('admin'), async
 
 router.post('/events/:eventId/sessions', ...auth, requireRole('admin', 'club'), async (req, res, next) => {
   try {
+    if (!mongoose.isValidObjectId(req.params.eventId)) return res.status(404).json({ error: 'Event not found.', code: 'NOT_FOUND' });
     const event = await Event.findById(req.params.eventId);
     if (!event || !await mayManage(req.user, event)) return res.status(404).json({ error: 'Event not found.', code: 'NOT_FOUND' });
+    if (['cancelled', 'completed'].includes(event.status)) return res.status(409).json({ error: 'Sessions cannot be added to a cancelled or completed event.', code: 'EVENT_LOCKED' });
     const title = typeof req.body?.title === 'string' ? req.body.title.trim() : '';
     const date = new Date(req.body?.date);
     const startsAt = new Date(req.body?.startsAt);
@@ -46,9 +48,9 @@ router.post('/events/:eventId/sessions', ...auth, requireRole('admin', 'club'), 
     const attendanceOpensAt = new Date(req.body?.attendanceOpensAt);
     const attendanceClosesAt = new Date(req.body?.attendanceClosesAt);
     const values = [date, startsAt, endsAt, attendanceOpensAt, attendanceClosesAt];
-    const attendanceOverlapsSession = attendanceOpensAt < endsAt && attendanceClosesAt > startsAt;
-    if (title.length < 2 || title.length > 120 || values.some((item) => Number.isNaN(+item)) || startsAt >= endsAt || attendanceOpensAt >= attendanceClosesAt || !attendanceOverlapsSession || date < new Date(new Date(event.startsAt).setHours(0, 0, 0, 0)) || date > new Date(new Date(event.endsAt).setHours(23, 59, 59, 999)) || startsAt < event.startsAt || endsAt > event.endsAt) {
-      return res.status(400).json({ error: 'Check the session title, event dates, times, and attendance window.', code: 'INVALID_INPUT' });
+    const attendanceWithinSession = attendanceOpensAt >= startsAt && attendanceClosesAt <= endsAt;
+    if (title.length < 2 || title.length > 120 || values.some((item) => Number.isNaN(+item)) || startsAt >= endsAt || attendanceOpensAt >= attendanceClosesAt || !attendanceWithinSession || date < new Date(new Date(event.startsAt).setHours(0, 0, 0, 0)) || date > new Date(new Date(event.endsAt).setHours(23, 59, 59, 999)) || startsAt < event.startsAt || endsAt > event.endsAt) {
+      return res.status(400).json({ error: 'Check the session title, event dates, times, and keep its attendance window inside the session.', code: 'INVALID_INPUT' });
     }
     event.sessions.push({ title, date, startsAt, endsAt, attendanceOpensAt, attendanceClosesAt });
     await event.save();
@@ -58,11 +60,14 @@ router.post('/events/:eventId/sessions', ...auth, requireRole('admin', 'club'), 
 
 router.patch('/events/:eventId/sessions/:sessionId', ...auth, requireRole('admin', 'club'), async (req, res, next) => {
   try {
+    if (!mongoose.isValidObjectId(req.params.eventId)) return res.status(404).json({ error: 'Event not found.', code: 'NOT_FOUND' });
     const event = await Event.findById(req.params.eventId);
     if (!event || !await mayManage(req.user, event)) return res.status(404).json({ error: 'Event not found.', code: 'NOT_FOUND' });
     const session = event.sessions.id(req.params.sessionId);
     if (!session) return res.status(404).json({ error: 'Session not found.', code: 'NOT_FOUND' });
     if (req.body?.status !== 'cancelled') return res.status(400).json({ error: 'Sessions can only be cancelled here.', code: 'INVALID_INPUT' });
+    if (session.status === 'cancelled') return res.status(409).json({ error: 'This session is already cancelled.', code: 'INVALID_SESSION_STATE' });
+    if (new Date() >= session.attendanceOpensAt) return res.status(409).json({ error: 'A session cannot be cancelled after its attendance window opens.', code: 'SESSION_ALREADY_OPEN' });
     session.status = 'cancelled';
     await session.save();
     await QrToken.deleteMany({ event: event._id, sessionId: session._id });
@@ -72,6 +77,7 @@ router.patch('/events/:eventId/sessions/:sessionId', ...auth, requireRole('admin
 
 router.post('/events/:eventId/sessions/:sessionId/qr-token', ...auth, requireRole('admin', 'club'), async (req, res, next) => {
   try {
+    if (!mongoose.isValidObjectId(req.params.eventId)) return res.status(404).json({ error: 'Event not found.', code: 'NOT_FOUND' });
     const event = await Event.findById(req.params.eventId);
     if (!event || !await mayManage(req.user, event)) return res.status(404).json({ error: 'Event not found.', code: 'NOT_FOUND' });
     const session = event.sessions.id(req.params.sessionId);
@@ -129,6 +135,7 @@ router.get('/student/attendance', ...auth, requireRole('student', 'external'), a
 
 router.get('/events/:eventId/attendance', ...auth, requireRole('admin', 'club'), async (req, res, next) => {
   try {
+    if (!mongoose.isValidObjectId(req.params.eventId)) return res.status(404).json({ error: 'Event not found.', code: 'NOT_FOUND' });
     const event = await Event.findById(req.params.eventId).populate('club', 'name');
     if (!event || !await mayManage(req.user, event)) return res.status(404).json({ error: 'Event not found.', code: 'NOT_FOUND' });
     const registrations = await Registration.find({ event: event._id, status: 'confirmed' }).populate('user', 'username displayName email enrollmentId role').lean();
@@ -141,7 +148,7 @@ router.get('/events/:eventId/attendance', ...auth, requireRole('admin', 'club'),
 router.post('/events/:eventId/attendance/correction', ...auth, requireRole('admin', 'club'), async (req, res, next) => {
   try {
     const { sessionId, userId, status, reason } = req.body ?? {};
-    if (!mongoose.isValidObjectId(sessionId) || !mongoose.isValidObjectId(userId) || !['present', 'absent'].includes(status) || typeof reason !== 'string' || reason.trim().length < 3 || reason.trim().length > 1000) {
+    if (!mongoose.isValidObjectId(req.params.eventId) || !mongoose.isValidObjectId(sessionId) || !mongoose.isValidObjectId(userId) || !['present', 'absent'].includes(status) || typeof reason !== 'string' || reason.trim().length < 3 || reason.trim().length > 1000) {
       return res.status(400).json({ error: 'Choose a session, student, status, and correction reason.', code: 'INVALID_INPUT' });
     }
     const event = await Event.findById(req.params.eventId);

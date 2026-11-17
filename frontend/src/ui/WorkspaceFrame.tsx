@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Activity, Bell, CalendarDays, Compass, LayoutDashboard, LogOut, Menu, ShieldCheck, Users, X } from 'lucide-react';
+import { Activity, Bell, CalendarDays, Compass, LayoutDashboard, LogOut, Mail, Menu, ShieldCheck, Users, X } from 'lucide-react';
 import { useAuth, type Role } from '../auth/AuthContext';
 
 export function WorkspaceFrame({ role, children }: { role: Role; children: ReactNode }) {
@@ -13,6 +13,7 @@ export function WorkspaceFrame({ role, children }: { role: Role; children: React
     { label: 'Events', href: `${base}/events`, icon: CalendarDays },
     ...(role === 'admin' ? [{ label: 'Accounts', href: '/admin/accounts', icon: Users }, { label: 'Bookings', href: '/admin/bookings', icon: CalendarDays }] : []),
     ...(role === 'student' || role === 'external' ? [{ label: 'My bookings', href: '/student/bookings', icon: CalendarDays }, { label: 'Attendance', href: '/student/attendance', icon: Activity }] : []),
+    ...(role === 'student' && user?.accountType === 'internal' ? [{ label: 'College email', href: '/student/email', icon: Mail }] : []),
     { label: 'Notifications', href: `${base}/notifications`, icon: Bell },
   ];
   const initials = user?.displayName.split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase() ?? 'C';

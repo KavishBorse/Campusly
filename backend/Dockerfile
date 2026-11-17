@@ -1,4 +1,4 @@
-FROM node:22-alpine
+FROM node:24-alpine
 
 WORKDIR /app
 
@@ -9,7 +9,7 @@ RUN npm ci --omit=dev
 
 COPY backend ./backend
 
-ENV NODE_ENV=development
+ENV NODE_ENV=production
 EXPOSE 4001
 
 CMD ["npm", "run", "start", "--workspace", "backend"]

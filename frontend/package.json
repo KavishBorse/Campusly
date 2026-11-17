@@ -9,6 +9,7 @@
     "check": "tsc -b --pretty"
   },
   "dependencies": {
+    "@zxing/browser": "^0.2.1",
     "lucide-react": "^0.468.0",
     "qrcode.react": "^4.2.0",
     "react": "^19.1.1",

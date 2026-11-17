@@ -45,10 +45,10 @@ export function LoginPage() {
           <div className="eyebrow"><Sparkles size={15} strokeWidth={2.3} /> THE CAMPUSLY EXPERIENCE</div>
           <h1>Make room for<br /><em>what brings</em><br />you together.</h1>
           <p>One home for the moments, people, and ideas that make campus life yours.</p>
-          <div className="story-event-card">
-            <div className="event-card-art"><span className="art-orbit art-orbit--one" /><span className="art-orbit art-orbit--two" /><span className="art-sun" /><span className="art-caption">FIND YOUR<br />NEXT THING</span></div>
-            <div className="event-card-details"><div><span className="card-overline">MADE FOR YOUR CAMPUS</span><strong>Every gathering<br />starts somewhere.</strong></div><span className="event-card-arrow"><ArrowRight size={16} /></span></div>
-          </div>
+          <a className="story-logo-card" href="/events" aria-label="Explore Campusly events">
+            <img src="/campusly-emblem.png" alt="Campusly — Events, Clubs, Community" />
+            <span><span><small>MADE FOR YOUR CAMPUS</small><strong>Every gathering starts somewhere.</strong></span><ArrowRight size={17} /></span>
+          </a>
         </div>
         <div className="story-footer"><span>01 / YOUR CAMPUS, CONNECTED</span><span>© CAMPUSLY 2026</span></div>
       </section>

@@ -340,6 +340,13 @@ a.side-nav-item { text-decoration: none; }
 .public-detail-card h1 { margin: 17px 0 10px; font-family: 'Manrope', sans-serif; font-size: clamp(30px, 5vw, 48px); letter-spacing: -1.8px; }
 .public-detail-description { color: #6e7c92; font-size: 14px; line-height: 1.8; white-space: pre-wrap; }
 .event-meta--large { flex-direction: row; flex-wrap: wrap; gap: 13px 24px; margin: 25px 0; padding: 18px 0; border-top: 1px solid #edf0f4; border-bottom: 1px solid #edf0f4; font-size: 11px; }
+.public-session-list { display: flex; flex-direction: column; gap: 10px; margin-top: 23px; }
+.public-session-list > .section-kicker { display: block; margin-bottom: 2px; }
+.public-session-row { display: flex; flex-direction: column; gap: 7px; padding: 13px 15px; border: 1px solid #e5e8ef; border-radius: 10px; background: #f7f8fb; }
+.public-session-row-main { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.public-session-row-main strong { color: #35445d; font-size: 13px; line-height: 1.45; }
+.public-session-row-main span { color: #64718a; font-size: 12px; line-height: 1.5; text-align: right; }
+.public-session-row small { color: #78859a; font-size: 11px; line-height: 1.5; }
 .event-policy-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .event-policy-grid > div { display: flex; flex-direction: column; gap: 7px; min-height: 70px; padding: 12px; border-radius: 9px; background: #f7f8fb; }
 .event-policy-grid small, .booking-ticket small { color: #929caf; font-size: 8px; font-weight: 700; letter-spacing: 1px; }
@@ -449,10 +456,13 @@ a.side-nav-item { text-decoration: none; }
 .attendance-manager-panel { margin-top: 2px; }
 .correction-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 15px; padding-top: 15px; border-top: 1px solid #edf0f4; }
 .correction-form .button { align-self: end; min-height: 41px; font-size: 10px; }
-.scan-card { width: min(calc(100% - 32px), 480px); }
-.qr-camera-preview { width: 100%; max-height: 300px; margin: 10px 0; border-radius: 10px; object-fit: cover; background: #101b31; }
+.scan-card { position: relative; width: min(calc(100% - 32px), 480px); }
+.qr-camera-preview { display: block; width: 100%; max-height: 300px; aspect-ratio: 4 / 3; margin: 10px 0; border-radius: 10px; object-fit: cover; background: #101b31; }
+.qr-camera-preview--idle { position: absolute; width: 1px; height: 1px; margin: 0; overflow: hidden; opacity: 0; pointer-events: none; }
+.qr-camera-preview--active { position: relative; width: 100%; max-height: 300px; margin: 10px 0; opacity: 1; }
 .scan-actions { margin: 12px 0; }
 .scan-actions .button { min-height: 40px; font-size: 10px; }
+.scan-card .tool-form .button { min-height: 44px; }
 .dashboard-event-list { display: flex; flex-direction: column; gap: 7px; margin-top: 15px; }
 .dashboard-event-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px; border: 1px solid #edf0f4; border-radius: 9px; background: #fff; }
 .dashboard-event-row > span:first-child { display: flex; flex-direction: column; gap: 4px; }
@@ -486,6 +496,8 @@ a.side-nav-item { text-decoration: none; }
   .public-footer { flex-direction: column; padding: 15px 18px; }
   .public-detail-card { width: calc(100% - 24px); margin: 20px auto; padding: 20px; }
   .event-meta--large { flex-direction: column; gap: 9px; }
+  .public-session-row-main { align-items: flex-start; flex-direction: column; gap: 4px; }
+  .public-session-row-main span { text-align: left; }
   .event-policy-grid { grid-template-columns: 1fr; }
   .public-detail-actions { flex-direction: column; }
   .public-detail-actions .button { width: 100%; }

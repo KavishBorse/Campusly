@@ -31,6 +31,13 @@ services:
       SEED_CLUB_USERNAME: ${SEED_CLUB_USERNAME:-}
       SEED_CLUB_PASSWORD: ${SEED_CLUB_PASSWORD:-}
       SEED_CLUB_NAME: ${SEED_CLUB_NAME:-}
+      INTERNAL_STUDENT_EMAIL_DOMAIN: ${INTERNAL_STUDENT_EMAIL_DOMAIN:-students.mituniversity.edu.in}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      EMAIL_FROM: ${EMAIL_FROM:-}
     ports:
       - "127.0.0.1:${API_HOST_PORT:-4001}:4001"
     depends_on:

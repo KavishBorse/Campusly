@@ -67,3 +67,13 @@ This checklist tracks the supplied five-day MERN event-system plan. Days 1–4 f
 - The temporary MongoDB data and test accounts used by the integration smoke were removed after verification.
 
 The Docker Compose stack is running locally. See [README.md](./README.md) for app URLs, the Compass connection string, and commands to inspect or stop the services.
+
+## Follow-up beyond the original five-day MVP
+
+- [x] Add configurable SMTP delivery for external-account verification and internal student email-link codes, retaining the local development-code flow when SMTP is not configured.
+- [x] Require an OTP to verify any valid external-student signup email.
+- [x] Let internal MIT students link a college email after sign-in only when its local part matches the stored enrollment ID, then verify mailbox access by OTP.
+- [x] Add a browser-based QR decoder fallback for browsers without the built-in `BarcodeDetector` API; keep manual token entry available.
+- [ ] Configure a real SMTP provider in the private `.env` file so OTPs reach real inboxes.
+- [ ] Connect an authoritative student roster, SIS API, or campus identity provider to verify active enrollment. Email and stored-ID matching does not prove current enrollment.
+- [ ] Try camera scanning on the target phones and desktop browsers after rebuilding the local Compose app.

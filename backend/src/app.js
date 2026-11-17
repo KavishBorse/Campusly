@@ -10,11 +10,13 @@ import eventsRouter from './routes/events.js';
 import bookingsRouter from './routes/bookings.js';
 import notificationsRouter from './routes/notifications.js';
 import attendanceRouter from './routes/attendance.js';
+import publicRouter from './routes/public.js';
 
 const app = express();
 const frontendOrigin = process.env.FRONTEND_ORIGIN ?? 'http://localhost:5173';
 
 app.disable('x-powered-by');
+if (process.env.NODE_ENV === 'production') app.set('trust proxy', 1);
 app.use(helmet());
 app.use(cors({ origin: frontendOrigin, credentials: true }));
 app.use(express.json({ limit: '10kb' }));
@@ -25,6 +27,7 @@ app.get('/api/health', (_req, res) => {
   return res.status(databaseReady ? 200 : 503).json({ status: databaseReady ? 'ok' : 'database_unavailable' });
 });
 app.use('/api/auth', authRouter);
+app.use('/api/public', publicRouter);
 app.use('/api/admin', clubsRouter);
 app.use('/api/events', eventsRouter);
 app.use('/api', bookingsRouter);

@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import mongoose from 'mongoose';
 import { randomBytes, randomInt } from 'node:crypto';
 import { Event } from '../models/Event.js';
 import { Registration } from '../models/Registration.js';
@@ -7,6 +8,7 @@ import { Payment } from '../models/Payment.js';
 import { User } from '../models/User.js';
 import { Club } from '../models/Club.js';
 import { Attendance } from '../models/Attendance.js';
+import { Notification } from '../models/Notification.js';
 import { requireAuth, enforcePasswordChange, requireRole } from '../middleware/auth.js';
 import { eligibleFor, mayManage } from './events.js';
 
@@ -36,6 +38,7 @@ router.get('/admin/reports/bookings.csv', ...auth, requireRole('admin'), async (
 
 router.post('/events/:eventId/register', ...auth, requireRole('student', 'external'), async (req, res, next) => {
   try {
+    if (!mongoose.isValidObjectId(req.params.eventId)) return res.status(404).json({ error: 'Published event not found.', code: 'NOT_FOUND' });
     const event = await Event.findById(req.params.eventId);
     if (!event || event.status !== 'published') return res.status(404).json({ error: 'Published event not found.', code: 'NOT_FOUND' });
     if (!eligibleFor(event, req.user)) return res.status(403).json({ error: 'This event is not open to your student account type.', code: 'NOT_ELIGIBLE' });
@@ -65,8 +68,12 @@ router.post('/events/:eventId/register', ...auth, requireRole('student', 'extern
       { new: true },
     );
     if (!reserved) {
-      registration.status = 'cancelled';
-      await registration.save();
+      if (await Event.exists({ _id: event._id })) {
+        registration.status = 'cancelled';
+        await registration.save();
+      } else {
+        await Registration.deleteOne({ _id: registration._id, status: 'pending' });
+      }
       return res.status(409).json({ error: 'This event is full or registration has closed.', code: 'EVENT_FULL' });
     }
 
@@ -125,7 +132,7 @@ router.get('/bookings', ...auth, requireRole('student', 'external'), async (req,
 
 router.get('/admin/bookings', ...auth, requireRole('admin'), async (_req, res, next) => {
   try {
-    const bookings = await Booking.find().populate('event', 'title startsAt status').populate('user', 'username displayName email enrollmentId role').sort({ createdAt: -1 }).limit(1000).lean();
+    const bookings = await Booking.find().populate('event', 'title venue startsAt endsAt status').populate('user', 'username displayName email enrollmentId role').sort({ createdAt: -1 }).limit(1000).lean();
     const payments = await Payment.find({ booking: { $in: bookings.map((item) => item._id) } }).lean();
     return res.json({ bookings, payments });
   } catch (error) { return next(error); }
@@ -133,6 +140,7 @@ router.get('/admin/bookings', ...auth, requireRole('admin'), async (_req, res, n
 
 router.get('/events/:eventId/registrations', ...auth, requireRole('admin', 'club'), async (req, res, next) => {
   try {
+    if (!mongoose.isValidObjectId(req.params.eventId)) return res.status(404).json({ error: 'Event not found.', code: 'NOT_FOUND' });
     const event = await Event.findById(req.params.eventId);
     if (!event || !await mayManage(req.user, event)) return res.status(404).json({ error: 'Event not found.', code: 'NOT_FOUND' });
     const registrations = await Registration.find({ event: event._id }).populate('user', 'username displayName email enrollmentId role accountType').sort({ registeredAt: -1 }).lean();
@@ -143,6 +151,7 @@ router.get('/events/:eventId/registrations', ...auth, requireRole('admin', 'club
 
 router.post('/bookings/:bookingId/cancel', ...auth, async (req, res, next) => {
   try {
+    if (!mongoose.isValidObjectId(req.params.bookingId)) return res.status(404).json({ error: 'Booking not found.', code: 'NOT_FOUND' });
     const booking = await Booking.findById(req.params.bookingId);
     if (!booking) return res.status(404).json({ error: 'Booking not found.', code: 'NOT_FOUND' });
     if (req.user.role !== 'admin' && String(booking.user) !== String(req.user._id)) return res.status(403).json({ error: 'You can only cancel your own booking.', code: 'FORBIDDEN' });
@@ -162,6 +171,15 @@ router.post('/bookings/:bookingId/cancel', ...auth, async (req, res, next) => {
     await Registration.updateOne({ _id: booking.registration }, { status: 'cancelled', ticketCode: null });
     await Event.updateOne({ _id: booking.event, reservedCount: { $gt: 0 } }, { $inc: { reservedCount: -1 } });
     if (refunded) await Payment.create({ booking: booking._id, user: booking.user, event: booking.event, amount: booking.amount, status: 'refunded', providerReference: demoReference(), message: 'Simulated refund recorded. No real money was moved.' });
+    if (req.user.role === 'admin') {
+      await Notification.create({
+        sender: req.user._id,
+        recipient: booking.user,
+        event: booking.event,
+        title: 'Your event booking was cancelled',
+        message: `Your booking for ${event?.title ?? 'an event'} was cancelled by a campus administrator.${refunded ? ' A simulated refund has been recorded; no real money was moved.' : ''}`,
+      });
+    }
     return res.json({ booking: cancelledBooking, message: refunded ? 'Booking cancelled and simulated refund recorded.' : 'Booking cancelled.' });
   } catch (error) { return next(error); }
 });

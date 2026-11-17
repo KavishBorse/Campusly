@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import mongoose from 'mongoose';
 import { randomUUID } from 'node:crypto';
 import { Notification } from '../models/Notification.js';
 import { NotificationBatch } from '../models/NotificationBatch.js';
@@ -22,6 +23,7 @@ router.get('/notifications', ...auth, async (req, res, next) => {
 
 router.patch('/notifications/:notificationId/read', ...auth, async (req, res, next) => {
   try {
+    if (!mongoose.isValidObjectId(req.params.notificationId)) return res.status(404).json({ error: 'Notification not found.', code: 'NOT_FOUND' });
     const notification = await Notification.findOneAndUpdate({ _id: req.params.notificationId, recipient: req.user._id }, { $set: { readAt: new Date() } }, { new: true });
     if (!notification) return res.status(404).json({ error: 'Notification not found.', code: 'NOT_FOUND' });
     return res.json({ notification });
@@ -52,6 +54,7 @@ router.post('/notifications/send', ...auth, requireRole('admin'), async (req, re
     let recipients;
     let eventId = null;
     if (audience === 'event') {
+      if (!mongoose.isValidObjectId(req.body?.eventId)) return res.status(404).json({ error: 'Event not found.', code: 'NOT_FOUND' });
       const event = await Event.findById(req.body.eventId);
       if (!event) return res.status(404).json({ error: 'Event not found.', code: 'NOT_FOUND' });
       eventId = event._id;
@@ -83,6 +86,7 @@ router.post('/notifications/send', ...auth, requireRole('admin'), async (req, re
 
 router.post('/events/:eventId/notify', ...auth, requireRole('admin', 'club'), async (req, res, next) => {
   try {
+    if (!mongoose.isValidObjectId(req.params.eventId)) return res.status(404).json({ error: 'Event not found.', code: 'NOT_FOUND' });
     const title = typeof req.body?.title === 'string' ? req.body.title.trim() : '';
     const message = typeof req.body?.message === 'string' ? req.body.message.trim() : '';
     if (title.length < 3 || title.length > 120 || message.length < 3 || message.length > 2000) return res.status(400).json({ error: 'Enter a title and message within the limits.', code: 'INVALID_INPUT' });

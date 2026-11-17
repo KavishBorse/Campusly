@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import { User, toPublicUser } from '../models/User.js';
 import { Club } from '../models/Club.js';
@@ -10,6 +11,7 @@ const admin = [requireAuth, enforcePasswordChange, requireRole('admin')];
 function slugify(value) {
   return value.toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 110);
 }
+const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 router.get('/clubs', ...admin, async (_req, res, next) => {
   try {
@@ -45,6 +47,7 @@ router.post('/clubs', ...admin, async (req, res, next) => {
 
 router.post('/clubs/:clubId/reset-password', ...admin, async (req, res, next) => {
   try {
+    if (!mongoose.isValidObjectId(req.params.clubId)) return res.status(404).json({ error: 'Club not found.', code: 'NOT_FOUND' });
     const password = typeof req.body?.password === 'string' ? req.body.password : '';
     if (password.length < 12 || password.length > 256) return res.status(400).json({ error: 'Use a password with at least 12 characters.', code: 'WEAK_PASSWORD' });
     const club = await Club.findById(req.params.clubId);
@@ -60,6 +63,7 @@ router.post('/clubs/:clubId/reset-password', ...admin, async (req, res, next) =>
 
 router.patch('/clubs/:clubId/status', ...admin, async (req, res, next) => {
   try {
+    if (!mongoose.isValidObjectId(req.params.clubId)) return res.status(404).json({ error: 'Club not found.', code: 'NOT_FOUND' });
     if (!['active', 'suspended'].includes(req.body?.status)) return res.status(400).json({ error: 'Choose active or suspended.', code: 'INVALID_INPUT' });
     const club = await Club.findById(req.params.clubId);
     if (!club) return res.status(404).json({ error: 'Club not found.', code: 'NOT_FOUND' });
@@ -75,16 +79,35 @@ router.get('/users', ...admin, async (req, res, next) => {
     const filter = {};
     if (['admin', 'club', 'student', 'external'].includes(req.query.role)) filter.role = req.query.role;
     if (['active', 'suspended'].includes(req.query.status)) filter.status = req.query.status;
-    const users = await User.find(filter).select('username displayName email enrollmentId collegeName role accountType status emailVerified createdAt').sort({ createdAt: -1 }).limit(500).lean();
-    return res.json({ users });
+    const query = typeof req.query.q === 'string' ? req.query.q.trim().slice(0, 100) : '';
+    if (query) {
+      const pattern = new RegExp(escapeRegex(query), 'i');
+      filter.$or = [{ username: pattern }, { displayName: pattern }, { email: pattern }, { enrollmentId: pattern }];
+    }
+    const requestedPageSize = Number.parseInt(String(req.query.limit ?? '100'), 10);
+    const pageSize = Number.isInteger(requestedPageSize) && requestedPageSize > 0 ? Math.min(requestedPageSize, 500) : 100;
+    const requestedPage = Number.parseInt(String(req.query.page ?? '1'), 10);
+    const page = Number.isInteger(requestedPage) && requestedPage > 0 ? Math.min(requestedPage, 100000) : 1;
+    const [users, total] = await Promise.all([
+      User.find(filter).select('username displayName email enrollmentId collegeName role accountType status emailVerified createdAt').sort({ createdAt: -1, _id: -1 }).skip((page - 1) * pageSize).limit(pageSize).lean(),
+      User.countDocuments(filter),
+    ]);
+    return res.json({ users, total, page, pageSize });
   } catch (error) { return next(error); }
 });
 
 router.patch('/users/:userId/status', ...admin, async (req, res, next) => {
   try {
     if (!['active', 'suspended'].includes(req.body?.status)) return res.status(400).json({ error: 'Choose active or suspended.', code: 'INVALID_INPUT' });
-    const user = await User.findByIdAndUpdate(req.params.userId, { status: req.body.status }, { new: true }).select('username displayName role status');
+    if (!mongoose.isValidObjectId(req.params.userId)) return res.status(404).json({ error: 'User not found.', code: 'NOT_FOUND' });
+    const user = await User.findById(req.params.userId).select('username displayName role status');
     if (!user) return res.status(404).json({ error: 'User not found.', code: 'NOT_FOUND' });
+    if (user.role === 'admin') return res.status(409).json({ error: 'Administrator accounts cannot be suspended or reactivated from the campus directory.', code: 'ADMIN_ACCOUNT_PROTECTED' });
+    if (String(user._id) === String(req.user._id) && req.body.status === 'suspended') {
+      return res.status(409).json({ error: 'You cannot suspend your own administrator account.', code: 'SELF_SUSPENSION_BLOCKED' });
+    }
+    user.status = req.body.status;
+    await user.save();
     if (user.role === 'club') await Club.updateOne({ user: user._id }, { status: req.body.status });
     return res.json({ user });
   } catch (error) { return next(error); }
