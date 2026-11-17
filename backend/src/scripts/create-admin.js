@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
-import readline from 'node:readline';
+import readline from 'node:readline/promises';
 import { User } from '../models/User.js';
 
 function askHidden(prompt) {
