@@ -10,33 +10,37 @@ function askHidden(prompt) {
   }
 
   return new Promise((resolve, reject) => {
-    readline.emitKeypressEvents(input);
-    const previousRawMode = input.isRaw;
+    const previousRawMode = Boolean(input.isRaw);
     let value = '';
-    process.stdout.write(prompt);
-    input.setRawMode(true);
-    input.resume();
 
     const finish = (error) => {
-      input.off('keypress', onKeypress);
-      input.setRawMode(previousRawMode ?? false);
+      input.off('data', onData);
+      input.off('end', onEnd);
+      input.setRawMode(previousRawMode);
       input.pause();
-      process.stdout.write('\n');
+      process.stdout.write('\r\n');
       if (error) reject(error);
       else resolve(value);
     };
 
-    const onKeypress = (character, key = {}) => {
-      if (key.ctrl && key.name === 'c') return finish(new Error('Cancelled.'));
-      if (key.name === 'return' || key.name === 'enter') return finish();
-      if (key.name === 'backspace') {
-        value = value.slice(0, -1);
-        return;
+    const onData = (chunk) => {
+      for (const character of chunk.toString('utf8')) {
+        if (character === '\u0003') return finish(new Error('Cancelled.'));
+        if (character === '\r' || character === '\n') return finish();
+        if (character === '\u007f' || character === '\b') {
+          value = value.slice(0, -1);
+          continue;
+        }
+        if (character >= ' ') value += character;
       }
-      if (character && !key.ctrl && !key.meta) value += character;
     };
 
-    input.on('keypress', onKeypress);
+    const onEnd = () => finish(new Error('The terminal closed before input was received.'));
+    input.on('data', onData);
+    input.once('end', onEnd);
+    process.stdout.write(prompt);
+    input.setRawMode(true);
+    input.resume();
   });
 }
 
