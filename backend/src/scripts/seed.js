@@ -23,8 +23,8 @@ const required = [
 ];
 const missing = required.filter((key) => !process.env[key]?.trim());
 if (missing.length) throw new Error(`Set these local seed values in .env: ${missing.join(', ')}`);
-if (process.env.SEED_ADMIN_PASSWORD.length < 12) {
-  throw new Error('SEED_ADMIN_PASSWORD must have at least 12 characters.');
+if (process.env.SEED_ADMIN_PASSWORD.length < 8) {
+  throw new Error('SEED_ADMIN_PASSWORD must have at least 8 characters.');
 }
 
 const clubValues = ['SEED_CLUB_USERNAME', 'SEED_CLUB_PASSWORD', 'SEED_CLUB_NAME'];
@@ -32,8 +32,8 @@ const configuredClubValues = clubValues.filter((key) => process.env[key]?.trim()
 if (configuredClubValues.length && configuredClubValues.length !== clubValues.length) {
   throw new Error('Set all three optional club seed values or leave them all blank.');
 }
-if (configuredClubValues.length && process.env.SEED_CLUB_PASSWORD.length < 12) {
-  throw new Error('SEED_CLUB_PASSWORD must have at least 12 characters.');
+if (configuredClubValues.length && process.env.SEED_CLUB_PASSWORD.length < 8) {
+  throw new Error('SEED_CLUB_PASSWORD must have at least 8 characters.');
 }
 
 async function createIfMissing({ username, password, displayName, role, accountType, enrollmentId, phone, email, mustChangePassword }) {

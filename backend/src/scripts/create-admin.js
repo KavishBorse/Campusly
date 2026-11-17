@@ -66,9 +66,9 @@ async function main() {
     throw new Error('The display name must be between 2 and 120 characters.');
   }
 
-  const password = await askHidden('Administrator password (at least 12 characters): ');
+  const password = await askHidden('Administrator password (at least 8 characters): ');
   const confirmation = await askHidden('Confirm administrator password: ');
-  if (password.length < 12 || password.length > 256) throw new Error('The password must be between 12 and 256 characters.');
+  if (password.length < 8 || password.length > 256) throw new Error('The password must be between 8 and 256 characters.');
   if (password !== confirmation) throw new Error('The passwords do not match.');
 
   await mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 10000 });

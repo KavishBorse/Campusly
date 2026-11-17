@@ -43,10 +43,10 @@ export function ChangePasswordPage() {
           <label className="field-label" htmlFor="current-password">Initial password</label>
           <input className="text-input" id="current-password" type="password" autoComplete="current-password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} required />
           <label className="field-label" htmlFor="new-password">New password</label>
-          <input className="text-input" id="new-password" type="password" autoComplete="new-password" minLength={12} value={newPassword} onChange={(event) => setNewPassword(event.target.value)} required aria-describedby="password-hint" />
-          <span className="field-hint" id="password-hint">Use at least 12 characters.</span>
+          <input className="text-input" id="new-password" type="password" autoComplete="new-password" minLength={8} value={newPassword} onChange={(event) => setNewPassword(event.target.value)} required aria-describedby="password-hint" />
+          <span className="field-hint" id="password-hint">Use at least 8 characters.</span>
           <label className="field-label" htmlFor="confirm-password">Confirm new password</label>
-          <input className="text-input" id="confirm-password" type="password" autoComplete="new-password" minLength={12} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} required />
+          <input className="text-input" id="confirm-password" type="password" autoComplete="new-password" minLength={8} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} required />
           <button className="button button--primary login-submit" type="submit" disabled={submitting}>
             <span>{submitting ? 'Saving password…' : 'Save and continue'}</span><ArrowRight size={17} />
           </button>

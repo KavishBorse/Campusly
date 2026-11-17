@@ -7,6 +7,7 @@ import { requireAuth, enforcePasswordChange, requireRole } from '../middleware/a
 
 const router = Router();
 const admin = [requireAuth, enforcePasswordChange, requireRole('admin')];
+const minimumPasswordLength = 8;
 
 function slugify(value) {
   return value.toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 110);
@@ -27,8 +28,8 @@ router.post('/clubs', ...admin, async (req, res, next) => {
     const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
     const password = typeof req.body?.password === 'string' ? req.body.password : '';
     const description = typeof req.body?.description === 'string' ? req.body.description.trim() : '';
-    if (name.length < 2 || name.length > 120 || username.length < 3 || username.length > 120 || password.length < 12 || password.length > 256 || (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) {
-      return res.status(400).json({ error: 'Enter a club name, username, optional valid email, and password of at least 12 characters.', code: 'INVALID_INPUT' });
+    if (name.length < 2 || name.length > 120 || username.length < 3 || username.length > 120 || password.length < minimumPasswordLength || password.length > 256 || (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) {
+      return res.status(400).json({ error: `Enter a club name, username, optional valid email, and password of at least ${minimumPasswordLength} characters.`, code: 'INVALID_INPUT' });
     }
     const user = await User.create({ username, displayName: name, email: email || undefined, passwordHash: await bcrypt.hash(password, 12), role: 'club', accountType: 'club', mustChangePassword: true });
     try {
@@ -49,7 +50,7 @@ router.post('/clubs/:clubId/reset-password', ...admin, async (req, res, next) =>
   try {
     if (!mongoose.isValidObjectId(req.params.clubId)) return res.status(404).json({ error: 'Club not found.', code: 'NOT_FOUND' });
     const password = typeof req.body?.password === 'string' ? req.body.password : '';
-    if (password.length < 12 || password.length > 256) return res.status(400).json({ error: 'Use a password with at least 12 characters.', code: 'WEAK_PASSWORD' });
+    if (password.length < minimumPasswordLength || password.length > 256) return res.status(400).json({ error: `Use a password with at least ${minimumPasswordLength} characters.`, code: 'WEAK_PASSWORD' });
     const club = await Club.findById(req.params.clubId);
     if (!club) return res.status(404).json({ error: 'Club not found.', code: 'NOT_FOUND' });
     const user = await User.findById(club.user);

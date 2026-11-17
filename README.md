@@ -13,7 +13,7 @@ Docker Compose starts MongoDB, the API, and the built web app. It uses a named v
    cd C:\Users\Kavish\Desktop\Campusly
    ```
 
-3. Make sure the root `.env` has a random `JWT_SECRET` with at least 32 characters and the seed account values described in [Development accounts](#development-accounts). The seed admin password and any configured club password must each have at least 12 characters. If the three optional `SEED_CLUB_*` values are used, set all three.
+3. Make sure the root `.env` has a random `JWT_SECRET` with at least 32 characters and the seed account values described in [Development accounts](#development-accounts). The seed admin password and any configured club password must each have at least 8 characters. If the three optional `SEED_CLUB_*` values are used, set all three.
 4. Start the stack:
 
    ```powershell
@@ -96,6 +96,20 @@ The deployment setup uses Vercel for the React site, Render for the Express API,
 7. Open the Vercel URL, check the public event page, create an external account, verify its email OTP, and sign in with the initial admin. The Vercel API proxy keeps the browser session cookie on the same site.
 
 The admin setup command writes only to the Atlas URI entered at its prompt. Do not run the development seed command against production; it creates demo accounts and events and intentionally only runs in development mode.
+
+### Provision internal students in Atlas
+
+After a college administrator verifies the enrollment IDs against the official roster, run the bulk provisioner from the project folder in an interactive PowerShell terminal. It prompts for the Atlas URI and each student's name, enrollment ID, and initial phone password. The URI and phone inputs are hidden; passwords are bcrypt-hashed, and students must change them at first sign-in. A preview run makes no database changes; `--apply` still requires typing `PROVISION` after reviewing the list. The command aborts if an enrollment ID or username already exists and inserts the batch in one transaction.
+
+```powershell
+$env:NODE_ENV = "production"
+npm run provision-students --workspace backend -- --apply
+Remove-Item Env:NODE_ENV
+```
+
+The command prints a preview and asks for the exact word `PROVISION` before writing. To preview without the ability to write, omit `-- --apply`.
+
+Run this from a trusted computer and use a database URI with write access to `campusly`. If Atlas rejects the connection, add the current computer's IP under Atlas → Network Access; avoid allowing access from every IP. Never paste the phone values into `passwordHash` directly or commit them to a file.
 
 ## Development accounts
 

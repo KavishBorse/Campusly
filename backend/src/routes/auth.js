@@ -11,6 +11,7 @@ import { emailDeliveryStatus, sendVerificationEmail } from '../services/email.js
 const router = Router();
 const sessionCookie = 'campusly_session';
 const sessionDurationMs = 15 * 60 * 1000;
+const minimumPasswordLength = 8;
 
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -47,8 +48,8 @@ router.post('/external/register', signupLimiter, async (req, res, next) => {
     const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
     const password = typeof req.body?.password === 'string' ? req.body.password : '';
     if (name.length < 2 || name.length > 120 || collegeName.length < 2 || collegeName.length > 160 ||
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || password.length < 12 || password.length > 256) {
-      return res.status(400).json({ error: 'Enter your name, college, valid email, and a password of at least 12 characters.', code: 'INVALID_INPUT' });
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || password.length < minimumPasswordLength || password.length > 256) {
+      return res.status(400).json({ error: `Enter your name, college, valid email, and a password of at least ${minimumPasswordLength} characters.`, code: 'INVALID_INPUT' });
     }
 
     const delivery = emailDeliveryStatus();
@@ -288,9 +289,9 @@ router.patch('/password', requireAuth, async (req, res, next) => {
   try {
     const currentPassword = typeof req.body?.currentPassword === 'string' ? req.body.currentPassword : '';
     const newPassword = typeof req.body?.newPassword === 'string' ? req.body.newPassword : '';
-    if (newPassword.length < 12 || newPassword.length > 256) {
+    if (newPassword.length < minimumPasswordLength || newPassword.length > 256) {
       return res.status(400).json({
-        error: 'Use a new password with at least 12 characters.',
+        error: `Use a new password with at least ${minimumPasswordLength} characters.`,
         code: 'WEAK_PASSWORD',
       });
     }
