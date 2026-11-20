@@ -1,7 +1,9 @@
+import { BrandLogo } from './BrandLogo';
+
 export function LoadingScreen() {
   return (
     <main className="loading-screen" aria-label="Loading Campusly">
-      <span className="brand-mark brand-mark--small">c</span>
+      <BrandLogo className="brand-logo--loading" />
       <span className="loading-line" />
     </main>
   );

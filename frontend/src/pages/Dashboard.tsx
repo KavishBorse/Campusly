@@ -3,6 +3,7 @@ import { Activity, ArrowUpRight, Bell, CalendarDays, CircleHelp, Compass, Layout
 import { api, messageOf } from '../api';
 import { useAuth, type Role } from '../auth/AuthContext';
 import { LoadingScreen } from '../ui/LoadingScreen';
+import { BrandLogo } from '../ui/BrandLogo';
 import { formatEventDateRange } from '../utils/eventDates';
 
 type Overview = Record<string, string | number>;
@@ -75,7 +76,7 @@ export function Dashboard({ role }: { role: Role }) {
   return (
     <div className="dashboard-layout">
       <aside className={`sidebar ${menuOpen ? 'sidebar--open' : ''}`}>
-        <a className="brand-lockup sidebar-brand" href="/"><span className="brand-mark brand-mark--small">c</span><span>campusly</span></a>
+        <a className="brand-lockup sidebar-brand" href="/" aria-label="Campusly home"><BrandLogo className="brand-logo--nav" /></a>
         <div className="workspace-chip"><span className="workspace-icon">{role === 'admin' ? <ShieldCheck size={15} /> : role === 'club' ? <Users size={15} /> : <Compass size={15} />}</span><span><small>WORKSPACE</small><strong>{content.label}</strong></span></div>
         <div className="nav-section-label">WORKSPACE</div>
         <nav className="side-nav" aria-label="Main navigation">

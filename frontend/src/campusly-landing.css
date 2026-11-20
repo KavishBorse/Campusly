@@ -24,7 +24,7 @@
 .landing-hero-note { display: flex; align-items: center; gap: 8px; margin-top: 22px; color: #A7AEB9; font-size: 13px; }
 .landing-hero-note svg { color: var(--antique-gold); }
 .landing-hero-art { width: min(100%, 400px); justify-self: end; padding: 11px; border: 1px solid #C6A15B75; border-radius: 18px; background: #0E151D; box-shadow: 0 22px 60px #0007; transform: rotate(1.1deg); }
-.landing-hero-art img { display: block; width: 100%; aspect-ratio: 3 / 2; border-radius: 10px; object-fit: cover; }
+.landing-hero-art img { display: block; width: 100%; height: auto; border-radius: 10px; }
 .landing-image-caption { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 5px 2px; }
 .landing-image-caption > span { color: var(--antique-gold); font-size: 12px; font-weight: 800; letter-spacing: .7px; }
 .landing-image-caption > strong { color: var(--ivory); font-family: 'Manrope', sans-serif; font-size: 13px; font-weight: 600; text-align: right; }

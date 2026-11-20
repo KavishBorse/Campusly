@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { ArrowRight, KeyRound, ShieldCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import { BrandLogo } from '../ui/BrandLogo';
 
 export function ChangePasswordPage() {
   const { user, changePassword } = useAuth();
@@ -32,7 +33,7 @@ export function ChangePasswordPage() {
 
   return (
     <main className="password-page">
-      <header className="simple-header"><a className="brand-lockup" href="/"><span className="brand-mark brand-mark--small">c</span><span>campusly</span></a><span className="secure-note"><ShieldCheck size={14} /> SECURE CAMPUS ACCESS</span></header>
+      <header className="simple-header"><a className="brand-lockup" href="/" aria-label="Campusly home"><BrandLogo className="brand-logo--nav" /></a><span className="secure-note"><ShieldCheck size={14} /> SECURE CAMPUS ACCESS</span></header>
       <section className="password-card">
         <div className="welcome-icon"><KeyRound size={21} /></div>
         <span className="form-eyebrow">ONE QUICK STEP</span>

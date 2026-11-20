@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft, Camera, CameraOff, QrCode } from 'lucide-react';
 import type { IScannerControls } from '@zxing/browser';
 import { api, jsonBody, messageOf } from '../api';
+import { BrandLogo } from '../ui/BrandLogo';
 
 export function ScanPage() {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -83,7 +84,7 @@ export function ScanPage() {
     scannerControlsRef.current?.stop();
   }, []);
 
-  return <main className="auth-utility-page"><header className="public-header"><Link className="brand-lockup" to="/student"><span className="brand-mark brand-mark--small">c</span><span>campusly</span></Link><Link to="/student/attendance" className="text-link"><ArrowLeft size={15}/> My attendance</Link></header><section className="auth-utility-card scan-card"><span className="welcome-icon"><QrCode size={22}/></span><span className="form-eyebrow">SESSION CHECK-IN</span><h1>Scan the current QR.</h1><p>Attendance codes rotate every five seconds and only work during the session window.</p>{error && <div className="form-alert" role="alert">{error}</div>}{message && <div className="form-success" role="status">{message}</div>}
+  return <main className="auth-utility-page"><header className="public-header"><Link className="brand-lockup" to="/student" aria-label="Campusly home"><BrandLogo className="brand-logo--nav" /></Link><Link to="/student/attendance" className="text-link"><ArrowLeft size={15}/> My attendance</Link></header><section className="auth-utility-card scan-card"><span className="welcome-icon"><QrCode size={22}/></span><span className="form-eyebrow">SESSION CHECK-IN</span><h1>Scan the current QR.</h1><p>Attendance codes rotate every five seconds and only work during the session window.</p>{error && <div className="form-alert" role="alert">{error}</div>}{message && <div className="form-success" role="status">{message}</div>}
     <video ref={videoRef} className={`qr-camera-preview${cameraOn ? ' qr-camera-preview--active' : ' qr-camera-preview--idle'}`} playsInline muted aria-label="QR camera preview"/>
     <div className="scan-actions"><button className="button button--secondary" type="button" onClick={cameraOn ? stopCamera : startCamera}>{cameraOn ? <CameraOff size={16}/> : <Camera size={16}/>} {cameraOn ? 'Stop camera' : 'Open camera'}</button></div>
     <form className="tool-form" onSubmit={(event) => { event.preventDefault(); void submit(); }}><label>Or enter the QR code value<input value={token} onChange={(event) => setToken(event.target.value)} placeholder="Paste the current code" autoComplete="off"/></label><button className="button button--primary" disabled={busy || !token.trim()}>{busy ? 'Checking…' : 'Check in'}</button></form>

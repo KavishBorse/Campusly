@@ -3,6 +3,7 @@ import { ArrowRight, CalendarDays, Check, ShieldCheck, Sparkles } from 'lucide-r
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth, type Role } from '../auth/AuthContext';
 import { LoadingScreen } from '../ui/LoadingScreen';
+import { BrandLogo } from '../ui/BrandLogo';
 
 function destination(role: Role, mustChangePassword: boolean) {
   if (mustChangePassword) return '/change-password';
@@ -40,13 +41,13 @@ export function LoginPage() {
   return (
     <main className="login-layout">
       <section className="login-story" aria-label="About Campusly">
-        <div className="story-topline"><span className="brand-mark">c</span><span className="brand-name">campusly</span><span className="story-label">CAMPUS, IN MOTION</span></div>
+        <div className="story-topline"><BrandLogo className="brand-logo--story" /><span className="story-label">CAMPUS, IN MOTION</span></div>
         <div className="story-content">
           <div className="eyebrow"><Sparkles size={15} strokeWidth={2.3} /> THE CAMPUSLY EXPERIENCE</div>
           <h1>Make room for<br /><em>what brings</em><br />you together.</h1>
           <p>One home for the moments, people, and ideas that make campus life yours.</p>
           <a className="story-logo-card" href="/events" aria-label="Explore Campusly events">
-            <img src="/campusly-emblem.png" alt="Campusly — Events, Clubs, Community" />
+            <img src="/campusly-emblem.png" alt="Campusly — Events, Clubs, Community" width={1536} height={1024} />
             <span><span><small>MADE FOR YOUR CAMPUS</small><strong>Every gathering starts somewhere.</strong></span><ArrowRight size={17} /></span>
           </a>
         </div>
@@ -54,7 +55,7 @@ export function LoginPage() {
       </section>
 
       <section className="login-panel">
-        <div className="login-panel-top"><span className="mobile-brand"><span className="brand-mark brand-mark--small">c</span> campusly</span><span className="secure-note"><ShieldCheck size={14} /> SECURE CAMPUS ACCESS</span></div>
+        <div className="login-panel-top"><span className="mobile-brand"><BrandLogo className="brand-logo--mobile" /></span><span className="secure-note"><ShieldCheck size={14} /> SECURE CAMPUS ACCESS</span></div>
         <div className="login-form-wrap">
           <div className="welcome-icon"><CalendarDays size={22} strokeWidth={1.7} /></div>
           <span className="form-eyebrow">YOUR CAMPUS IS WAITING</span>

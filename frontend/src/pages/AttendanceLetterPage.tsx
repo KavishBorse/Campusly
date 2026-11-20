@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, Printer } from 'lucide-react';
 import { api, messageOf } from '../api';
 import { formatEventDateRange } from '../utils/eventDates';
+import { BrandLogo } from '../ui/BrandLogo';
 
 type AttendanceLetter = {
   studentName: string;
@@ -51,7 +52,7 @@ export function AttendanceLetterPage() {
     </div>
     <article className="attendance-letter">
       <header className="attendance-letter-header">
-        <span className="attendance-letter-brand"><span className="brand-mark brand-mark--small">c</span> campusly</span>
+        <span className="attendance-letter-brand"><BrandLogo className="brand-logo--letter" /></span>
         <span className="attendance-letter-issuer">MIT ADT UNIVERSITY · PUNE</span>
       </header>
       <div className="attendance-letter-rule" />
