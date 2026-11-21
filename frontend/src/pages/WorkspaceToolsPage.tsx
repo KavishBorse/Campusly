@@ -9,8 +9,9 @@ type UserRow = { _id: string; username: string; displayName: string; email?: str
 type ClubRow = { _id: string; name: string; slug: string; description: string; status: string; user: UserRow };
 type NotificationRow = { _id: string; title: string; message: string; createdAt: string; readAt?: string | null; sender?: { displayName: string; role: string }; event?: { title: string } | null };
 type SentNotification = { batchId: string; title: string; message: string; createdAt: string; recipientCount: number; eventTitle?: string };
-type BookingRow = { _id: string; status: string; paymentType: string; amount: number; ticketCode?: string; createdAt: string; event: { _id: string; title: string; startsAt: string; endsAt: string; venue: string; status: string }; user?: { displayName: string; username: string; role: string } };
+type BookingRow = { _id: string; status: string; paymentType: string; amount: number; ticketCode?: string; createdAt: string; event: { _id: string; title: string; startsAt?: string; endsAt?: string; venue?: string; status: string } | null; user?: { displayName: string; username: string; role: string } };
 type PaymentRow = { booking: string; status: string; amount: number; message: string; createdAt: string };
+type EventBookingGroup = { key: string; event: BookingRow['event']; bookings: BookingRow[] };
 
 export function AccountsPage() {
   const [users, setUsers] = useState<UserRow[]>([]);
@@ -140,7 +141,98 @@ export function BookingsPage({ role }: { role: Role }) {
     try { const data = await api<{ message: string }>(`/api/bookings/${id}/cancel`, { method: 'POST', body: jsonBody({}) }); setNotice(data.message); await load(); }
     catch (reason) { setError(messageOf(reason)); }
   }
-  return <section className="tool-page"><div className="tool-page-heading"><div><span className="section-kicker">{role === 'admin' ? 'ADMIN CONSOLE' : 'YOUR TICKETS'}</span><h1>{role === 'admin' ? 'Bookings and demo payments.' : 'My bookings.'}</h1><p>{role === 'admin' ? 'Review ticket status and simulated payment outcomes.' : 'Your confirmed tickets and their demo payment history.'}</p></div><CalendarDays size={20}/></div>{error && <div className="form-alert" role="alert">{error}<button className="button button--secondary button--small" type="button" onClick={() => void load()}>Retry</button></div>}{notice && <div className="form-success" role="status">{notice}</div>}{role === 'admin' && <div className="report-downloads"><a className="button button--secondary button--small" href="/api/admin/reports/bookings.csv"><Download size={14}/> Export bookings CSV</a><a className="button button--secondary button--small" href="/api/admin/reports/attendance.csv"><Download size={14}/> Export attendance CSV</a></div>}{loading ? <div className="tool-empty">Loading bookings…</div> : bookings.length ? <div className="booking-list">{bookings.map((booking) => { const event = booking.event; const relatedPayments = payments.filter((payment) => payment.booking === booking._id); return <article className="booking-card" key={booking._id}><div className="booking-card-main"><div className="booking-card-icon"><CalendarDays size={20}/></div><div><span className={`status-pill status-pill--${booking.status}`}>{booking.status.replaceAll('_', ' ')}</span><h2>{event?.title ?? 'Event'}</h2><p>{event?.venue} · {event?.startsAt && event?.endsAt ? formatEventDateRange(event.startsAt, event.endsAt) : event?.startsAt ? new Intl.DateTimeFormat('en-IN',{dateStyle:'medium',timeStyle:'short'}).format(new Date(event.startsAt)) : ''}</p>{role === 'admin' && booking.user && <small>{booking.user.displayName} · {booking.user.username} ({booking.user.role})</small>}</div></div><div className="booking-ticket"><small>TICKET CODE</small><strong>{booking.ticketCode ?? '—'}</strong>{booking.paymentType === 'simulated' && <span>₹{booking.amount} · demo</span>}{relatedPayments.map((payment, index) => <small key={`${payment.status}-${index}`}>Payment: {payment.status} · ₹{payment.amount}</small>)}</div><div className="booking-card-actions"><Link className="text-link" to={`${role === 'admin' ? '/admin' : '/student'}/events/${event?._id}`}>Event details <ArrowRight size={14}/></Link>{booking.status === 'confirmed' && <button className="button button--secondary button--small" onClick={() => { const ok = role !== 'admin' || window.confirm(`Cancel ${booking.user?.displayName ?? 'this attendee'}’s ticket for “${event?.title ?? 'this event'}”? Any paid demo booking will receive a simulated refund record.`); if (ok) void cancel(booking._id); }} type="button">{role === 'admin' ? 'Cancel booking' : 'Cancel ticket'}</button>}</div></article>; })}</div> : <div className="tool-empty"><CalendarDays size={24}/><strong>{role === 'admin' ? 'No bookings have been made yet.' : 'No bookings yet.'}</strong><span>{role === 'admin' ? 'Bookings and demo payment records will appear here once students register for published events.' : 'Browse upcoming events to reserve a seat.'}</span>{role !== 'admin' && <Link className="button button--primary" to="/student/events">Browse events</Link>}</div>}</section>;
+
+  const eventGroups = role === 'admin'
+    ? Array.from(bookings.reduce((groups, booking) => {
+      const key = booking.event?._id ?? 'event-unavailable';
+      const existing = groups.get(key);
+      if (existing) existing.bookings.push(booking);
+      else groups.set(key, { key, event: booking.event, bookings: [booking] });
+      return groups;
+    }, new Map<string, EventBookingGroup>()).values())
+    : [];
+  const paymentsByBooking = new Map<string, PaymentRow[]>();
+  for (const payment of payments) {
+    paymentsByBooking.set(payment.booking, [...(paymentsByBooking.get(payment.booking) ?? []), payment]);
+  }
+
+  function renderBooking(booking: BookingRow, groupedAdmin = false) {
+    const event = booking.event;
+    const relatedPayments = paymentsByBooking.get(booking._id) ?? [];
+    const eventDate = event?.startsAt && event.endsAt
+      ? formatEventDateRange(event.startsAt, event.endsAt)
+      : event?.startsAt
+        ? new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(event.startsAt))
+        : '';
+
+    return <article className={`booking-card ${groupedAdmin ? 'booking-card--admin' : ''}`} key={booking._id}>
+      <div className="booking-card-main">
+        <div className="booking-card-icon"><CalendarDays size={20}/></div>
+        <div>
+          <span className={`status-pill status-pill--${booking.status}`}>{booking.status.replaceAll('_', ' ')}</span>
+          {groupedAdmin ? <>
+            <h2>{booking.user?.displayName ?? 'Student account unavailable'}</h2>
+            <p>{booking.user ? `${booking.user.username} · ${booking.user.role}` : 'Student details are unavailable.'}</p>
+          </> : <>
+            <h2>{event?.title ?? 'Event'}</h2>
+            <p>{[event?.venue, eventDate].filter(Boolean).join(' · ')}</p>
+          </>}
+        </div>
+      </div>
+      <div className="booking-ticket">
+        <small>TICKET CODE</small>
+        <strong>{booking.ticketCode ?? '—'}</strong>
+        {booking.paymentType === 'simulated' && <span>₹{booking.amount} · demo</span>}
+        {relatedPayments.map((payment, index) => <small key={`${payment.status}-${index}`}>Payment: {payment.status} · ₹{payment.amount}</small>)}
+      </div>
+      <div className="booking-card-actions">
+        {event?._id && <Link className="text-link" to={`${role === 'admin' ? '/admin' : '/student'}/events/${event._id}`}>Event details <ArrowRight size={14}/></Link>}
+        {booking.status === 'confirmed' && <button className="button button--secondary button--small" onClick={() => { const ok = role !== 'admin' || window.confirm(`Cancel ${booking.user?.displayName ?? 'this attendee'}’s ticket for “${event?.title ?? 'this event'}”? Any paid demo booking will receive a simulated refund record.`); if (ok) void cancel(booking._id); }} type="button">{role === 'admin' ? 'Cancel booking' : 'Cancel ticket'}</button>}
+      </div>
+    </article>;
+  }
+
+  return <section className="tool-page">
+    <div className="tool-page-heading">
+      <div>
+        <span className="section-kicker">{role === 'admin' ? 'ADMIN CONSOLE' : 'YOUR TICKETS'}</span>
+        <h1>{role === 'admin' ? 'Bookings by event.' : 'My bookings.'}</h1>
+        <p>{role === 'admin' ? 'Review each event’s attendees, ticket status, and payment history together.' : 'Your confirmed tickets and their demo payment history.'}</p>
+      </div>
+      <CalendarDays size={20}/>
+    </div>
+    {error && <div className="form-alert" role="alert">{error}<button className="button button--secondary button--small" type="button" onClick={() => void load()}>Retry</button></div>}
+    {notice && <div className="form-success" role="status">{notice}</div>}
+    {role === 'admin' && <div className="report-downloads"><a className="button button--secondary button--small" href="/api/admin/reports/bookings.csv"><Download size={14}/> Export bookings CSV</a><a className="button button--secondary button--small" href="/api/admin/reports/attendance.csv"><Download size={14}/> Export attendance CSV</a></div>}
+    {loading ? <div className="tool-empty">Loading bookings…</div> : bookings.length ? role === 'admin'
+      ? <div className="booking-event-list">{eventGroups.map((group) => {
+        const confirmedCount = group.bookings.filter((booking) => booking.status === 'confirmed').length;
+        const eventDate = group.event?.startsAt && group.event.endsAt
+          ? formatEventDateRange(group.event.startsAt, group.event.endsAt)
+          : group.event?.startsAt
+            ? new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(group.event.startsAt))
+            : '';
+        return <article className="booking-event-group" key={group.key}>
+          <header className="booking-event-heading">
+            <div className="booking-event-heading-main">
+              <div className="booking-card-icon"><CalendarDays size={20}/></div>
+              <div>
+                <div className="booking-event-kicker"><span className="section-kicker">EVENT BOOKINGS</span>{group.event?.status && <span className={`status-pill status-pill--${group.event.status}`}>{group.event.status}</span>}</div>
+                <h2>{group.event?.title ?? 'Event details unavailable'}</h2>
+                <p>{[group.event?.venue, eventDate].filter(Boolean).join(' · ') || 'Event date and venue unavailable'}</p>
+              </div>
+            </div>
+            <div className="booking-event-counts" aria-label="Booking totals">
+              <span><strong>{group.bookings.length}</strong><small>{group.bookings.length === 1 ? 'Booking' : 'Bookings'}</small></span>
+              <span><strong>{confirmedCount}</strong><small>Confirmed</small></span>
+            </div>
+          </header>
+          <div className="booking-event-bookings">{group.bookings.map((booking) => renderBooking(booking, true))}</div>
+        </article>;
+      })}</div>
+      : <div className="booking-list">{bookings.map((booking) => renderBooking(booking))}</div>
+      : <div className="tool-empty"><CalendarDays size={24}/><strong>{role === 'admin' ? 'No bookings have been made yet.' : 'No bookings yet.'}</strong><span>{role === 'admin' ? 'Bookings and demo payment records will appear here once students register for published events.' : 'Browse upcoming events to reserve a seat.'}</span>{role !== 'admin' && <Link className="button button--primary" to="/student/events">Browse events</Link>}</div>}
+  </section>;
 }
 
 type AttendanceSummary = { eventId: string; title: string; sessionsAttended: number; sessionsOccurred: number; sessionPercent: number | null; daysAttended: number; daysOccurred: number; dailyPercent: number | null; certificateAvailable: boolean };

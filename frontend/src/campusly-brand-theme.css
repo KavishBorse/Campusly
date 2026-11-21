@@ -193,6 +193,14 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .notification-card { border-color: var(--slate); }
 .notification-card--unread { background: #172D5938; border-color: #C6A15B6B; }
 .notification-card-icon, .booking-card-icon { color: var(--antique-gold); background: #C6A15B1B; }
+.booking-event-group { background: linear-gradient(155deg, #1A1D23, #161B22); border-color: var(--slate); box-shadow: 0 9px 26px #0003; }
+.booking-event-heading { background: #172D5945; border-color: var(--slate); }
+.booking-event-heading h2 { color: var(--ivory); }
+.booking-event-heading p, .booking-event-counts small { color: var(--ivory-muted); }
+.booking-event-counts span { background: var(--obsidian); border-color: var(--slate); }
+.booking-event-counts strong { color: var(--antique-gold); }
+.booking-card--admin { background: transparent; border: 0; box-shadow: none; }
+.booking-card--admin + .booking-card--admin { border-top-color: #303847A8; }
 .booking-card-main h2 { color: var(--ivory); }
 .booking-card-main p, .booking-card-main small, .booking-ticket span, .booking-ticket > small:not(:first-child) { color: var(--ivory-muted); }
 .booking-ticket strong { color: var(--antique-gold); }
