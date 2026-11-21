@@ -9,6 +9,11 @@ function readEmailConfig() {
     return { provider, from, apiKey, configured: Boolean(apiKey && from), hasSettings: Boolean(apiKey || from) };
   }
 
+  if (provider === 'sendgrid') {
+    const apiKey = process.env.SENDGRID_API_KEY?.trim() ?? '';
+    return { provider, from, apiKey, configured: Boolean(apiKey && from), hasSettings: Boolean(apiKey || from) };
+  }
+
   const host = process.env.SMTP_HOST?.trim() ?? '';
   const user = process.env.SMTP_USER?.trim() ?? '';
   const pass = process.env.SMTP_PASS ?? '';
@@ -71,6 +76,40 @@ export async function sendVerificationEmail({ email, code, purpose = 'signup' })
       signal: AbortSignal.timeout(15000),
     });
     if (!response.ok) throw new Error(`Email API request failed (${response.status}).`);
+    return;
+  }
+
+  if (config.provider === 'sendgrid') {
+    const namedSender = config.from.match(/^\s*(.*?)\s*<([^<>]+)>\s*$/);
+    const fromEmail = (namedSender?.[2] ?? config.from).trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fromEmail)) {
+      throw new Error('EMAIL_FROM must be a valid email address for SendGrid.');
+    }
+    const from = namedSender?.[1]
+      ? { email: fromEmail, name: namedSender[1].trim() }
+      : { email: fromEmail };
+    const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${config.apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        personalizations: [{ to: [{ email }] }],
+        from,
+        subject,
+        content: [
+          { type: 'text/plain', value: text },
+          { type: 'text/html', value: html },
+        ],
+      }),
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!response.ok) {
+      const error = new Error(`SendGrid email API request failed (${response.status}).`);
+      error.code = `SENDGRID_HTTP_${response.status}`;
+      throw error;
+    }
     return;
   }
 

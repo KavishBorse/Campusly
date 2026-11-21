@@ -68,13 +68,13 @@ router.post('/notifications/send', ...auth, requireRole('admin'), async (req, re
       const selectedUsers = await User.find({
         _id: { $in: requestedIds },
         status: 'active',
-        $or: [{ role: 'student', accountType: 'internal' }, { role: 'external', accountType: 'external', emailVerified: true }],
+        $or: [{ role: 'student', accountType: 'internal' }, { role: 'external', accountType: 'external' }],
       }).select('_id').lean();
-      if (selectedUsers.length !== requestedIds.length) return res.status(400).json({ error: 'Selected students must be active and verified when external.', code: 'INVALID_AUDIENCE' });
+      if (selectedUsers.length !== requestedIds.length) return res.status(400).json({ error: 'Select active student accounts.', code: 'INVALID_AUDIENCE' });
       recipients = selectedUsers.map((item) => item._id);
     } else {
       const accountTypes = audience === 'all' ? ['internal', 'external'] : [audience];
-      recipients = (await User.find({ accountType: { $in: accountTypes }, status: 'active', ...(accountTypes.includes('external') ? { $or: [{ accountType: 'internal' }, { emailVerified: true }] } : {}) }).select('_id').limit(5000).lean()).map((item) => item._id);
+      recipients = (await User.find({ accountType: { $in: accountTypes }, status: 'active' }).select('_id').limit(5000).lean()).map((item) => item._id);
     }
     const uniqueRecipients = [...new Map(recipients.map((id) => [String(id), id])).values()];
     const batchId = randomUUID();

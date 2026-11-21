@@ -64,7 +64,7 @@ export function PublicEventsPage() {
           <a className="button button--primary" href="#events">Explore open events <ArrowDownRight size={16}/></a>
           <Link className="landing-create-link" to="/signup">Create an external account <ArrowRight size={15}/></Link>
         </div>
-        <div className="landing-hero-note"><ShieldCheck size={15}/> External sign-up uses email verification.</div>
+        <div className="landing-hero-note"><ShieldCheck size={15}/> Create an account and start exploring.</div>
       </div>
       <div className="landing-hero-art">
         <img src="/campusly-emblem.png" alt="Campusly — Events, Clubs, Community" width={1536} height={1024} />

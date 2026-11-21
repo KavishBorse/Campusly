@@ -57,9 +57,9 @@ function withSessionStates(event, now = Date.now()) {
 
 function eligibleFor(event, user) {
   if (!user) return false;
-  if (event.eligibility === 'all') return (user.role === 'student' && user.accountType === 'internal') || (user.role === 'external' && user.emailVerified);
+  if (event.eligibility === 'all') return (user.role === 'student' && user.accountType === 'internal') || user.role === 'external';
   if (event.eligibility === 'internal') return user.role === 'student' && user.accountType === 'internal';
-  return user.role === 'external' && user.emailVerified;
+  return user.role === 'external';
 }
 
 async function mayManage(user, event) {
