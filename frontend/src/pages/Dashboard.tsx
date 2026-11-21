@@ -4,6 +4,7 @@ import { api, messageOf } from '../api';
 import { useAuth, type Role } from '../auth/AuthContext';
 import { LoadingScreen } from '../ui/LoadingScreen';
 import { BrandLogo } from '../ui/BrandLogo';
+import { NotificationCountBadge, useUnreadNotificationCount } from '../ui/useUnreadNotificationCount';
 import { formatEventDateRange } from '../utils/eventDates';
 
 type Overview = Record<string, string | number>;
@@ -18,6 +19,7 @@ const roleContent: Record<Role, { label: string; title: string; subtitle: string
 
 export function Dashboard({ role }: { role: Role }) {
   const { user, signOut } = useAuth();
+  const unreadCount = useUnreadNotificationCount();
   const [overview, setOverview] = useState<Overview | null>(null);
   const [events, setEvents] = useState<EventItem[]>([]);
   const [overviewError, setOverviewError] = useState('');
@@ -84,7 +86,7 @@ export function Dashboard({ role }: { role: Role }) {
           <a className="side-nav-item" href={`${basePath}/events`}><CalendarDays size={17} /><span>Events</span></a>
           {role === 'admin' && <a className="side-nav-item" href={`${basePath}/accounts`}><Users size={17} /><span>Accounts</span></a>}
           {(role === 'student' || role === 'external') && <a className="side-nav-item" href={`${basePath}/bookings`}><CalendarDays size={17} /><span>My bookings</span></a>}
-          <a className="side-nav-item" href={`${basePath}/notifications`}><Bell size={17} /><span>Notifications</span></a>
+          <a className="side-nav-item side-nav-item--notifications" href={`${basePath}/notifications`} aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'}><Bell size={17} /><span>Notifications</span><NotificationCountBadge count={unreadCount} /></a>
           {(role === 'student' || role === 'external') && <a className="side-nav-item" href={`${basePath}/attendance`}><Activity size={17} /><span>Attendance</span></a>}
           {user.accountType === 'internal' && <a className="side-nav-item" href="/student/email"><Mail size={17} /><span>College email</span></a>}
         </nav>
@@ -97,7 +99,7 @@ export function Dashboard({ role }: { role: Role }) {
         <header className="dashboard-topbar">
           <button className="mobile-menu-button" onClick={() => setMenuOpen((open) => !open)} aria-label={menuOpen ? 'Close navigation' : 'Open navigation'} type="button">{menuOpen ? <X size={20} /> : <Menu size={20} />}</button>
           <div className="breadcrumb"><span>Campusly</span><span className="breadcrumb-divider">/</span><strong>Overview</strong></div>
-          <div className="topbar-actions"><span className="topbar-date">{formattedDate}</span><span className="topbar-divider" /><a className="icon-button" href={`${basePath}/notifications`} aria-label="Notifications" title="Open notifications"><Bell size={18} /></a><button className="profile-button" onClick={handleSignOut} type="button" disabled={signingOut} title="Sign out"><span className="avatar">{accountInitials}</span><span className="profile-name">{user.displayName}</span><LogOut size={15} className="profile-logout" /></button></div>
+          <div className="topbar-actions"><span className="topbar-date">{formattedDate}</span><span className="topbar-divider" /><a className="icon-button notification-icon-button" href={`${basePath}/notifications`} aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'} title={unreadCount > 0 ? `${unreadCount} unread notification${unreadCount === 1 ? '' : 's'}` : 'Open notifications'}><Bell size={18} /><NotificationCountBadge count={unreadCount} /></a><button className="profile-button" onClick={handleSignOut} type="button" disabled={signingOut} title="Sign out"><span className="avatar">{accountInitials}</span><span className="profile-name">{user.displayName}</span><LogOut size={15} className="profile-logout" /></button></div>
         </header>
 
         <div className="dashboard-content">

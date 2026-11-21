@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, Bell, CalendarDays, Check, Download, FileText, KeyRound, QrCode, Send, Users } from 'lucide-react';
 import { api, jsonBody, messageOf } from '../api';
 import type { Role } from '../auth/AuthContext';
+import { publishUnreadNotificationCount } from '../ui/useUnreadNotificationCount';
 import { formatEventDateRange } from '../utils/eventDates';
 
 type UserRow = { _id: string; username: string; displayName: string; email?: string; enrollmentId?: string; role: string; status: string };
@@ -83,8 +84,9 @@ export function NotificationsPage({ role }: { role: Role }) {
   async function load() {
     setLoading(true); setError('');
     try {
-      const data = await api<{ notifications: NotificationRow[] }>('/api/notifications');
+      const data = await api<{ notifications: NotificationRow[]; unreadCount?: number }>('/api/notifications');
       setItems(data.notifications);
+      publishUnreadNotificationCount(data.unreadCount ?? data.notifications.filter((item) => !item.readAt).length);
       if (role === 'admin' || role === 'club') {
         const sent = await api<{ messages: SentNotification[] }>('/api/notifications/sent');
         setSentItems(sent.messages);

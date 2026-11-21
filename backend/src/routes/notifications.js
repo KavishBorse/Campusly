@@ -15,8 +15,10 @@ const auth = [requireAuth, enforcePasswordChange];
 
 router.get('/notifications', ...auth, async (req, res, next) => {
   try {
-    const notifications = await Notification.find({ recipient: req.user._id }).populate('sender', 'displayName role').populate('event', 'title').sort({ createdAt: -1 }).limit(200).lean();
-    const unreadCount = notifications.filter((item) => !item.readAt).length;
+    const [notifications, unreadCount] = await Promise.all([
+      Notification.find({ recipient: req.user._id }).populate('sender', 'displayName role').populate('event', 'title').sort({ createdAt: -1 }).limit(200).lean(),
+      Notification.countDocuments({ recipient: req.user._id, readAt: null }),
+    ]);
     return res.json({ notifications, unreadCount });
   } catch (error) { return next(error); }
 });
