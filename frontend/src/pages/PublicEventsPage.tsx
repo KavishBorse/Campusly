@@ -16,6 +16,7 @@ type PublicClub = { _id: string; name: string };
 type PublicEvent = { _id: string; title: string; startsAt: string; endsAt: string; mode?: 'in_person' | 'online' | 'hybrid'; eligibility: 'all' | 'external'; type: string; club?: { name: string } | null };
 
 export function PublicEventsPage() {
+  const { user } = useAuth();
   const [clubs, setClubs] = useState<PublicClub[]>([]);
   const [events, setEvents] = useState<PublicEvent[]>([]);
   const [clubsLoading, setClubsLoading] = useState(true);
@@ -44,14 +45,14 @@ export function PublicEventsPage() {
 
   const dateOptions: Intl.DateTimeFormatOptions = { weekday: 'short', day: 'numeric', month: 'short' };
   const timeOptions: Intl.DateTimeFormatOptions = { hour: 'numeric', minute: '2-digit' };
+  const workspacePath = user ? (user.role === 'external' ? '/student' : `/${user.role}`) : '/login';
 
   return <main className="public-page campus-landing">
     <header className="public-header landing-header">
       <Link className="brand-lockup" to="/" aria-label="Campusly home"><BrandLogo className="brand-logo--nav" /></Link>
       <nav className="landing-nav" aria-label="Landing page sections"><a href="#clubs">Clubs</a><a href="#events">Events</a></nav>
       <div className="public-header-actions landing-actions">
-        <Link to="/login">Sign in</Link>
-        <Link className="button button--primary" to="/signup"><span className="landing-join-full">Create account</span><span className="landing-join-short">Join</span><ArrowRight size={14}/></Link>
+        {user ? <Link className="button button--primary" to={workspacePath}>My workspace <ArrowRight size={14}/></Link> : <><Link to="/login">Sign in</Link><Link className="button button--primary" to="/signup"><span className="landing-join-full">Create account</span><span className="landing-join-short">Join</span><ArrowRight size={14}/></Link></>}
       </div>
     </header>
 
@@ -62,9 +63,9 @@ export function PublicEventsPage() {
         <p>Campusly brings campus events and student clubs into one place, so you can see what’s happening and find the gatherings open to you.</p>
         <div className="landing-hero-actions">
           <a className="button button--primary" href="#events">Explore open events <ArrowDownRight size={16}/></a>
-          <Link className="landing-create-link" to="/signup">Create an external account <ArrowRight size={15}/></Link>
+          {user ? <Link className="landing-create-link" to={workspacePath}>Open your workspace <ArrowRight size={15}/></Link> : <Link className="landing-create-link" to="/signup">Create an external account <ArrowRight size={15}/></Link>}
         </div>
-        <div className="landing-hero-note"><ShieldCheck size={15}/> Create an account and start exploring.</div>
+        <div className="landing-hero-note"><ShieldCheck size={15}/> {user ? 'Your campus activity is ready in your workspace.' : 'Create an account and start exploring.'}</div>
       </div>
       <div className="landing-hero-art">
         <img src="/campusly-emblem.png" alt="Campusly — Events, Clubs, Community" width={1536} height={1024} />
@@ -107,7 +108,7 @@ export function PublicEventsPage() {
       </article>)}</div> : !eventsError ? <p className="landing-empty">{query ? 'No open events match that search.' : 'There are no upcoming events open to external students right now. Check back soon.'}</p> : null}
     </section>
 
-    <section className="landing-cta"><div><span className="landing-section-label">YOUR NEXT CAMPUS DAY STARTS HERE</span><h2>Come be part of it.</h2><p>Create an external student account to register for events that welcome you.</p></div><div className="landing-cta-actions"><Link className="button button--primary" to="/signup">Create external account <ArrowRight size={15}/></Link><Link className="landing-login-link" to="/login">Already have an account? Sign in</Link></div></section>
+    <section className="landing-cta"><div><span className="landing-section-label">YOUR NEXT CAMPUS DAY STARTS HERE</span><h2>{user ? 'Welcome back.' : 'Come be part of it.'}</h2><p>{user ? 'Your campus activity and account details are waiting in your workspace.' : 'Create an external student account to register for events that welcome you.'}</p></div><div className="landing-cta-actions">{user ? <Link className="button button--primary" to={workspacePath}>Open my workspace <ArrowRight size={15}/></Link> : <><Link className="button button--primary" to="/signup">Create external account <ArrowRight size={15}/></Link><Link className="landing-login-link" to="/login">Already have an account? Sign in</Link></>}</div></section>
     <footer className="public-footer landing-footer"><span>MIT ADT UNIVERSITY · PUNE</span><span><ShieldCheck size={13}/> Campusly · Events, clubs, community</span></footer>
   </main>;
 }
