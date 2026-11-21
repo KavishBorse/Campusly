@@ -139,7 +139,7 @@ router.get('/student/attendance', ...auth, requireRole('student', 'external'), a
 router.get('/student/attendance/:eventId/letter', ...auth, requireRole('student', 'external'), async (req, res, next) => {
   try {
     if (!mongoose.isValidObjectId(req.params.eventId)) return res.status(404).json({ error: 'Event not found.', code: 'NOT_FOUND' });
-    const event = await Event.findById(req.params.eventId).select('title venue startsAt endsAt status sessions attendanceEnabled').lean();
+    const event = await Event.findById(req.params.eventId).select('title mode venue startsAt endsAt status sessions attendanceEnabled').lean();
     if (!event || event.attendanceEnabled === false) return res.status(404).json({ error: 'Attendance letter not found.', code: 'NOT_FOUND' });
     if (event.status === 'cancelled') return res.status(409).json({ error: 'Attendance letters are unavailable for cancelled events.', code: 'EVENT_CANCELLED' });
     const issuedAt = new Date();
@@ -161,6 +161,7 @@ router.get('/student/attendance/:eventId/letter', ...auth, requireRole('student'
       enrollmentId: req.user.accountType === 'internal' ? req.user.enrollmentId ?? null : null,
       collegeName: req.user.accountType === 'external' ? req.user.collegeName ?? null : null,
       eventTitle: event.title,
+      mode: event.mode ?? 'in_person',
       venue: event.venue,
       eventStartsAt: event.startsAt,
       eventEndsAt: event.endsAt,

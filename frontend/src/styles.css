@@ -305,15 +305,29 @@ a.side-nav-item { text-decoration: none; }
 .workspace-event-card h2, .public-event-card h3 { margin: 16px 0 8px; color: #1e2b44; font-family: 'Manrope', sans-serif; font-size: 17px; line-height: 1.35; letter-spacing: -.4px; }
 .workspace-event-card > p, .public-event-card > p { display: -webkit-box; margin: 0 0 17px; overflow: hidden; color: #7a879a; font-size: 11px; line-height: 1.65; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
 .public-event-card-top, .event-detail-overline, .workspace-event-footer, .session-card-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.event-type-pill, .status-pill, .event-status-pill { display: inline-flex; align-items: center; width: fit-content; min-height: 23px; padding: 0 8px; border-radius: 999px; color: #5e6b82; background: #f0f2f6; font-size: 9px; font-weight: 700; text-transform: capitalize; white-space: nowrap; }
+.public-event-card-top, .event-detail-overline { flex-wrap: wrap; }
+.event-type-pill, .event-mode-pill, .status-pill, .event-status-pill { display: inline-flex; align-items: center; width: fit-content; min-height: 23px; padding: 0 8px; border: 1px solid transparent; border-radius: 999px; color: #5e6b82; background: #f0f2f6; font-size: 9px; font-weight: 700; text-transform: capitalize; white-space: nowrap; }
 .event-type-pill--official { color: #4e63bc; background: #edf0ff; }
 .event-type-pill--club { color: #3e8565; background: #e9f7ef; }
+.event-mode-pill { color: #53627a; background: #eef1f5; }
+.event-mode-pill--online { color: #385b8e; background: #eaf2ff; }
+.event-mode-pill--hybrid { color: #856126; background: #fff3da; }
 .status-pill--published, .status-pill--confirmed, .status-pill--active, .status-pill--present { color: #347653; background: #eaf7ef; }
 .status-pill--pending_approval, .status-pill--pending, .status-pill--scheduled { color: #a66d28; background: #fff4e3; }
 .status-pill--changes_requested, .status-pill--rejected, .status-pill--suspended, .status-pill--payment_failed, .status-pill--cancelled, .status-pill--absent, .status-pill--refunded { color: #a34c48; background: #fff0ee; }
 .event-meta { display: flex; flex-direction: column; gap: 8px; margin-top: auto; color: #77849a; font-size: 10px; }
 .event-meta span { display: inline-flex; align-items: center; gap: 7px; }
 .event-meta svg { flex: 0 0 auto; color: #7386dc; }
+.event-mode-note, .public-online-note { display: flex; align-items: flex-start; gap: 10px; padding: 13px; border: 1px solid #dfe7f7; border-radius: 9px; color: #586a88; background: #f4f7fc; font-size: 12px; line-height: 1.55; }
+.event-mode-note svg, .public-online-note svg { flex: 0 0 auto; color: #5d77d2; }
+.public-detail-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+.event-online-access { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin: 17px 0; padding: 14px; border: 1px solid #dfe7f7; border-radius: 10px; background: #f5f7fc; }
+.event-online-access-copy { display: flex; align-items: flex-start; gap: 10px; }
+.event-online-access-copy > svg { flex: 0 0 auto; color: #5d77d2; }
+.event-online-access-copy div { display: flex; flex-direction: column; gap: 3px; }
+.event-online-access-copy strong { color: #34435b; font-size: 13px; }
+.event-online-access-copy span { color: #78859a; font-size: 12px; line-height: 1.5; }
+.event-online-access > .button { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 8px; }
 .workspace-event-footer { margin-top: 15px; padding-top: 13px; border-top: 1px solid #eef0f4; color: #8d98aa; font-size: 9px; }
 .text-link, .back-link { display: inline-flex; align-items: center; gap: 7px; color: #5369ca; font-size: 11px; font-weight: 700; }
 .text-link:hover, .back-link:hover { color: #2f49b1; }
@@ -382,6 +396,16 @@ a.side-nav-item { text-decoration: none; }
 .development-code strong { color: #3e55bc; font-family: 'Manrope', sans-serif; font-size: 25px; letter-spacing: 4px; }
 .development-code span { color: #818da2; font-size: 9px; }
 .tool-two-column { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(300px, .8fr); gap: 15px; margin-top: 17px; }
+.profile-layout { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(280px, .75fr); align-items: start; gap: 15px; }
+.profile-edit-panel, .profile-account-panel { padding: 20px; }
+.profile-page .tool-form label small { font-size: 11px; }
+.profile-readonly-row { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; padding: 12px; border: 1px solid #e6e9ef; border-radius: 9px; background: #f8f9fc; }
+.profile-readonly-row span { color: #8b96a9; font-size: 10px; font-weight: 700; }
+.profile-readonly-row strong { overflow-wrap: anywhere; color: #34435b; font-size: 13px; }
+.profile-locked-note { margin: 14px 0 0; color: #78859a; font-size: 12px; line-height: 1.65; }
+.profile-email-link { display: flex; width: fit-content; align-items: center; gap: 8px; margin-top: 12px; }
+.profile-account-footer { display: flex; align-items: center; gap: 8px; margin-top: 18px; padding-top: 13px; border-top: 1px solid #e6e9ef; color: #8b96a9; font-size: 11px; }
+.profile-save-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
 .tool-panel { min-width: 0; margin-bottom: 15px; padding: 19px; border: 1px solid #e6e9ef; border-radius: 12px; background: #fff; box-shadow: 0 3px 10px rgba(26, 38, 65, .025); }
 .tool-panel > .panel-heading { margin-bottom: 17px; }
 .tool-panel > .panel-heading > svg { color: #6f83d9; }
@@ -493,7 +517,7 @@ a.side-nav-item { text-decoration: none; }
 .workspace-frame-content { min-height: calc(100vh - 64px); }
 @media (max-width: 1000px) {
   .workspace-event-grid, .public-event-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .tool-two-column { grid-template-columns: 1fr; }
+  .tool-two-column, .profile-layout { grid-template-columns: 1fr; }
   .booking-card { grid-template-columns: minmax(200px, 1.2fr) minmax(120px, .8fr); }
   .booking-card-actions { grid-column: 1 / -1; flex-direction: row; justify-content: space-between; align-items: center; }
 }

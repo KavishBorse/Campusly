@@ -12,6 +12,7 @@ import { PublicEventDetailPage, PublicEventsPage } from './pages/PublicEventsPag
 import { ExternalSignupPage } from './pages/ExternalSignupPage';
 import { ScanPage } from './pages/ScanPage';
 import { StudentEmailPage } from './pages/StudentEmailPage';
+import { ProfilePage } from './pages/ProfilePage';
 import { WorkspaceFrame } from './ui/WorkspaceFrame';
 
 function rolePath(role: Role) {
@@ -60,11 +61,13 @@ export function App() {
       <Route path="/admin/bookings" element={<WorkspaceRoute role="admin" allowed={['admin']}><BookingsPage role="admin" /></WorkspaceRoute>} />
       <Route path="/admin/notifications" element={<WorkspaceRoute role="admin" allowed={['admin']}><NotificationsPage role="admin" /></WorkspaceRoute>} />
       <Route path="/club" element={<ProtectedRoute allowed={['club']}><Dashboard role="club" /></ProtectedRoute>} />
+      <Route path="/club/profile" element={<WorkspaceRoute role="club" allowed={['club']}><ProfilePage /></WorkspaceRoute>} />
       <Route path="/club/events" element={<WorkspaceRoute role="club" allowed={['club']}><EventListPage role="club" /></WorkspaceRoute>} />
       <Route path="/club/events/new" element={<WorkspaceRoute role="club" allowed={['club']}><EventFormPage role="club" /></WorkspaceRoute>} />
       <Route path="/club/events/:eventId" element={<WorkspaceRoute role="club" allowed={['club']}><EventDetailPage role="club" /></WorkspaceRoute>} />
       <Route path="/club/notifications" element={<WorkspaceRoute role="club" allowed={['club']}><NotificationsPage role="club" /></WorkspaceRoute>} />
       <Route path="/student" element={<ProtectedRoute allowed={['student', 'external']}><Dashboard role="student" /></ProtectedRoute>} />
+      <Route path="/student/profile" element={<WorkspaceRoute role="student" allowed={['student', 'external']}><ProfilePage /></WorkspaceRoute>} />
       <Route path="/student/events" element={<WorkspaceRoute role="student" allowed={['student', 'external']}><EventListPage role="student" /></WorkspaceRoute>} />
       <Route path="/student/events/:eventId" element={<WorkspaceRoute role="student" allowed={['student', 'external']}><EventDetailPage role="student" /></WorkspaceRoute>} />
       <Route path="/student/bookings" element={<WorkspaceRoute role="student" allowed={['student', 'external']}><BookingsPage role="student" /></WorkspaceRoute>} />

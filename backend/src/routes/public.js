@@ -21,7 +21,7 @@ router.get('/events', async (_req, res, next) => {
       registrationDeadline: { $gt: now },
       eligibility: { $in: ['all', 'external'] },
     })
-      .select('_id title startsAt endsAt eligibility type club')
+      .select('_id title startsAt endsAt eligibility type club mode')
       .populate({ path: 'club', select: 'name', match: { status: 'active' } })
       .sort({ startsAt: 1 })
       .limit(500)

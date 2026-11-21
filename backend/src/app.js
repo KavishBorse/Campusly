@@ -9,6 +9,7 @@ import clubsRouter from './routes/clubs.js';
 import eventsRouter from './routes/events.js';
 import bookingsRouter from './routes/bookings.js';
 import notificationsRouter from './routes/notifications.js';
+import profileRouter from './routes/profile.js';
 import attendanceRouter from './routes/attendance.js';
 import publicRouter from './routes/public.js';
 
@@ -32,6 +33,7 @@ app.use('/api/admin', clubsRouter);
 app.use('/api/events', eventsRouter);
 app.use('/api', bookingsRouter);
 app.use('/api', notificationsRouter);
+app.use('/api', profileRouter);
 app.use('/api', attendanceRouter);
 app.use('/api', overviewRouter);
 

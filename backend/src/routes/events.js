@@ -73,7 +73,20 @@ async function mayManage(user, event) {
 function eventPayload(body) {
   const title = typeof body?.title === 'string' ? body.title.trim() : '';
   const description = typeof body?.description === 'string' ? body.description.trim() : '';
-  const venue = typeof body?.venue === 'string' ? body.venue.trim() : '';
+  const mode = body?.mode === undefined ? 'in_person' : body.mode;
+  const venueInput = typeof body?.venue === 'string' ? body.venue.trim() : '';
+  const venue = mode === 'online' ? 'Online event' : venueInput;
+  let meetingUrl = typeof body?.meetingUrl === 'string' ? body.meetingUrl.trim() : '';
+  let meetingUrlIsValid = false;
+  if (meetingUrl && meetingUrl.length <= 500) {
+    try {
+      const parsedUrl = new URL(meetingUrl);
+      meetingUrlIsValid = parsedUrl.protocol === 'https:' && Boolean(parsedUrl.hostname);
+    } catch {
+      meetingUrlIsValid = false;
+    }
+  }
+  if (mode === 'in_person') meetingUrl = '';
   const startsAt = dateValue(body?.startsAt);
   const endsAt = dateValue(body?.endsAt);
   const registrationDeadline = dateValue(body?.registrationDeadline);
@@ -83,10 +96,10 @@ function eventPayload(body) {
   const price = ticketType === 'free' ? 0 : Number(body?.price);
   const attendanceEnabled = body?.attendanceEnabled === undefined ? true : body.attendanceEnabled;
   const validDates = startsAt && endsAt && registrationDeadline && !Number.isNaN(+startsAt) && !Number.isNaN(+endsAt) && !Number.isNaN(+registrationDeadline) && registrationDeadline <= startsAt && startsAt < endsAt;
-  if (title.length < 5 || title.length > 140 || description.length < 20 || description.length > 5000 || venue.length < 2 || venue.length > 240 || !validDates || !Number.isInteger(capacity) || capacity < 1 || capacity > 100000 || !['all', 'internal', 'external'].includes(eligibility) || !['free', 'paid'].includes(ticketType) || !Number.isFinite(price) || price < 0 || price > 10000000 || (ticketType === 'paid' && price <= 0) || typeof attendanceEnabled !== 'boolean') {
-    return { error: 'Check the event details, dates, capacity, eligibility, ticket price, and attendance setting.' };
+  if (title.length < 5 || title.length > 140 || description.length < 20 || description.length > 5000 || venue.length < 2 || venue.length > 240 || !['in_person', 'online', 'hybrid'].includes(mode) || ((mode === 'online' || mode === 'hybrid') && !meetingUrlIsValid) || !validDates || !Number.isInteger(capacity) || capacity < 1 || capacity > 100000 || !['all', 'internal', 'external'].includes(eligibility) || !['free', 'paid'].includes(ticketType) || !Number.isFinite(price) || price < 0 || price > 10000000 || (ticketType === 'paid' && price <= 0) || typeof attendanceEnabled !== 'boolean') {
+    return { error: 'Check the event details, dates, capacity, eligibility, ticket price, attendance setting, and HTTPS meeting link.' };
   }
-  return { value: { title, description, venue, startsAt, endsAt, registrationDeadline, capacity, eligibility, ticketType, price, attendanceEnabled } };
+  return { value: { title, description, mode, venue, meetingUrl, startsAt, endsAt, registrationDeadline, capacity, eligibility, ticketType, price, attendanceEnabled } };
 }
 
 router.get('/manage', ...auth, requireRole('admin', 'club'), async (req, res, next) => {
@@ -107,7 +120,7 @@ router.get('/manage', ...auth, requireRole('admin', 'club'), async (req, res, ne
     const requestedPageSize = Number.parseInt(String(req.query.limit ?? '100'), 10);
     const pageSize = Number.isInteger(requestedPageSize) && requestedPageSize > 0 ? Math.min(requestedPageSize, 100) : 100;
     const [events, total] = await Promise.all([
-      Event.find(filter).populate('club', 'name slug').populate('createdBy', 'displayName').sort({ updatedAt: -1, _id: -1 }).skip((page - 1) * pageSize).limit(pageSize).lean(),
+      Event.find(filter).select('+meetingUrl').populate('club', 'name slug').populate('createdBy', 'displayName').sort({ updatedAt: -1, _id: -1 }).skip((page - 1) * pageSize).limit(pageSize).lean(),
       Event.countDocuments(filter),
     ]);
     return res.json({ events: events.map((event) => withSessionStates(event)), total, page, pageSize });
@@ -155,20 +168,24 @@ router.post('/', ...auth, requireRole('admin', 'club'), async (req, res, next) =
 router.get('/:eventId', optionalAuth, async (req, res, next) => {
   try {
     if (!objectId(req.params.eventId)) return res.status(404).json({ error: 'Event not found.', code: 'NOT_FOUND' });
-    const event = await Event.findById(req.params.eventId).populate('club', 'name slug').populate('createdBy', 'displayName').lean();
+    const event = await Event.findById(req.params.eventId).select('+meetingUrl').populate('club', 'name slug').populate('createdBy', 'displayName').lean();
     if (!event) return res.status(404).json({ error: 'Event not found.', code: 'NOT_FOUND' });
     const manager = req.user ? await mayManage(req.user, event) : false;
     const visibleStatus = event.status === 'published' || event.status === 'completed';
     if (!visibleStatus && !manager) return res.status(404).json({ error: 'Event not found.', code: 'NOT_FOUND' });
     if (visibleStatus && !canViewPublishedEvent(event, req.user, manager)) return res.status(404).json({ error: 'Event not found.', code: 'NOT_FOUND' });
-    return res.json({ event: { ...withSessionStates(event), isEligible: eligibleFor(event, req.user), canManage: manager } });
+    const confirmedRegistration = !manager && req.user && ['student', 'external'].includes(req.user.role)
+      ? Boolean(await Registration.exists({ event: event._id, user: req.user._id, status: 'confirmed' }))
+      : false;
+    const attendeeCanJoin = confirmedRegistration && event.status === 'published' && event.endsAt > new Date();
+    return res.json({ event: { ...withSessionStates(event), meetingUrl: manager || attendeeCanJoin ? event.meetingUrl : null, isEligible: eligibleFor(event, req.user), canManage: manager } });
   } catch (error) { return next(error); }
 });
 
 router.delete('/:eventId', ...auth, requireRole('admin', 'club'), async (req, res, next) => {
   try {
     if (!objectId(req.params.eventId)) return res.status(404).json({ error: 'Event not found.', code: 'NOT_FOUND' });
-    const event = await Event.findById(req.params.eventId);
+    const event = await Event.findById(req.params.eventId).select('+meetingUrl');
     if (!event) return res.status(404).json({ error: 'Event not found.', code: 'NOT_FOUND' });
     if (!await mayManage(req.user, event)) return res.status(403).json({ error: 'You can only delete events managed by your account.', code: 'FORBIDDEN' });
 
@@ -200,7 +217,7 @@ router.delete('/:eventId', ...auth, requireRole('admin', 'club'), async (req, re
 router.patch('/:eventId', ...auth, requireRole('admin', 'club'), async (req, res, next) => {
   try {
     if (!objectId(req.params.eventId)) return res.status(404).json({ error: 'Event not found.', code: 'NOT_FOUND' });
-    const event = await Event.findById(req.params.eventId);
+    const event = await Event.findById(req.params.eventId).select('+meetingUrl');
     if (!event) return res.status(404).json({ error: 'Event not found.', code: 'NOT_FOUND' });
     if (!await mayManage(req.user, event)) return res.status(403).json({ error: 'You can only edit events managed by your account.', code: 'FORBIDDEN' });
     if (event.status === 'cancelled' || event.status === 'completed') return res.status(409).json({ error: 'This event can no longer be edited.', code: 'EVENT_LOCKED' });
@@ -218,7 +235,7 @@ router.patch('/:eventId', ...auth, requireRole('admin', 'club'), async (req, res
     if (event.sessions.some((session) => session.startsAt < parsed.value.startsAt || session.endsAt > parsed.value.endsAt)) {
       return res.status(409).json({ error: 'Update or cancel scheduled sessions before changing the event dates around them.', code: 'SESSION_OUTSIDE_EVENT' });
     }
-    const materialFields = ['startsAt', 'endsAt', 'registrationDeadline', 'venue', 'capacity', 'price', 'ticketType', 'eligibility', 'attendanceEnabled'];
+    const materialFields = ['startsAt', 'endsAt', 'registrationDeadline', 'mode', 'meetingUrl', 'venue', 'capacity', 'price', 'ticketType', 'eligibility', 'attendanceEnabled'];
     const changedMaterially = materialFields.some((key) => String(event[key]) !== String(parsed.value[key]));
     Object.assign(event, parsed.value);
     if (req.user.role === 'club' && event.status === 'published' && changedMaterially) {

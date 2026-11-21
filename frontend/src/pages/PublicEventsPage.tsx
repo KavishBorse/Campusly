@@ -1,19 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowDownRight, ArrowLeft, ArrowRight, ArrowUpRight, CalendarDays, MapPin, Search, ShieldCheck, Users } from 'lucide-react';
+import { ArrowDownRight, ArrowLeft, ArrowRight, ArrowUpRight, CalendarDays, MapPin, Search, ShieldCheck, Users, Video } from 'lucide-react';
 import { api, messageOf } from '../api';
 import { useAuth } from '../auth/AuthContext';
 import { formatEventDateRange } from '../utils/eventDates';
 import { BrandLogo } from '../ui/BrandLogo';
 
 type EventRecord = {
-  _id: string; title: string; description: string; venue: string; startsAt: string; endsAt: string;
+  _id: string; title: string; description: string; mode?: 'in_person' | 'online' | 'hybrid'; venue: string; startsAt: string; endsAt: string;
   registrationDeadline: string; capacity: number; reservedCount: number; eligibility: string;
   ticketType: 'free' | 'paid'; price: number; type: string; status?: string; attendanceEnabled?: boolean; club?: { name: string };
 };
 
 type PublicClub = { _id: string; name: string };
-type PublicEvent = { _id: string; title: string; startsAt: string; endsAt: string; eligibility: 'all' | 'external'; type: string; club?: { name: string } | null };
+type PublicEvent = { _id: string; title: string; startsAt: string; endsAt: string; mode?: 'in_person' | 'online' | 'hybrid'; eligibility: 'all' | 'external'; type: string; club?: { name: string } | null };
 
 export function PublicEventsPage() {
   const [clubs, setClubs] = useState<PublicClub[]>([]);
@@ -101,7 +101,7 @@ export function PublicEventsPage() {
       {eventsLoading ? <p className="landing-empty">Loading upcoming events…</p> : filteredEvents.length ? <div className="landing-event-list">{filteredEvents.map((event, index) => <article className="landing-event" key={event._id}>
         <span className="landing-event-index">{String(index + 1).padStart(2, '0')}</span>
         <div className="landing-event-date"><CalendarDays size={16}/><span>{formatEventDateRange(event.startsAt, event.endsAt, dateOptions, timeOptions)}</span></div>
-        <div className="landing-event-main"><h3>{event.title}</h3><span>{event.type === 'club' ? event.club?.name ?? 'Campus club' : 'MIT ADT University'}</span></div>
+        <div className="landing-event-main"><h3>{event.title}</h3><span>{event.type === 'club' ? event.club?.name ?? 'Campus club' : 'MIT ADT University'}</span>{event.mode && event.mode !== 'in_person' && <small className="landing-event-mode">{event.mode === 'online' ? 'ONLINE EVENT' : 'HYBRID EVENT'}</small>}</div>
         <span className={`landing-event-access ${event.eligibility === 'external' ? 'landing-event-access--external' : ''}`}>{event.eligibility === 'external' ? 'EXTERNAL STUDENTS' : 'OPEN TO ALL'}</span>
         <Link to={`/events/${event._id}`} className="landing-event-link" aria-label={`View ${event.title}`}><ArrowRight size={17}/></Link>
       </article>)}</div> : !eventsError ? <p className="landing-empty">{query ? 'No open events match that search.' : 'There are no upcoming events open to external students right now. Check back soon.'}</p> : null}
@@ -121,5 +121,13 @@ export function PublicEventDetailPage() {
   if (error) return <main className="public-page"><header className="public-header"><Link to="/events" className="text-link"><ArrowLeft size={16}/> Browse events</Link></header><div className="tool-empty">{error}</div></main>;
   if (!event) return <main className="public-page"><div className="tool-empty">Loading event…</div></main>;
   const workspacePath = user ? `/${user.role === 'external' ? 'student' : user.role}/events/${event._id}` : '/login';
-  return <main className="public-page"><header className="public-header"><Link className="brand-lockup" to="/" aria-label="Campusly home"><BrandLogo className="brand-logo--nav" /></Link><Link to="/events" className="text-link"><ArrowLeft size={16}/> All events</Link></header><article className="public-detail-card"><span className={`event-type-pill event-type-pill--${event.type}`}>{event.type === 'official' ? 'Campus event' : event.club?.name ?? 'Club event'}</span><h1>{event.title}</h1><p className="public-detail-description">{event.description}</p><div className="event-meta event-meta--large"><span><CalendarDays size={16}/>{formatEventDateRange(event.startsAt, event.endsAt, { dateStyle: 'full' }, { timeStyle: 'short' })}</span><span><MapPin size={16}/>{event.venue}</span><span>{event.reservedCount} / {event.capacity} seats reserved</span></div><div className="event-policy-grid"><div><small>ELIGIBILITY</small><strong>{event.eligibility === 'all' ? 'Internal and external students' : event.eligibility === 'internal' ? 'MIT students' : 'External students'}</strong></div><div><small>REGISTRATION CLOSES</small><strong>{new Intl.DateTimeFormat('en-IN',{dateStyle:'medium',timeStyle:'short'}).format(new Date(event.registrationDeadline))}</strong></div><div><small>TICKET</small><strong>{event.ticketType === 'free' ? 'Free' : `₹${event.price} · simulated demo payment`}</strong></div><div><small>ATTENDANCE</small><strong>{event.attendanceEnabled === false ? 'Not tracked' : 'Check-in tracked · letter after attendance'}</strong></div></div><div className="public-detail-actions"><Link className="button button--primary" to={workspacePath} state={user ? undefined : { from: `/student/events/${event._id}` }}>{user ? 'Open in your workspace' : 'Sign in to register'} <ArrowRight size={15}/></Link>{!user && <Link className="button button--secondary" to="/signup">External student? Create an account</Link>}</div>{event.ticketType === 'paid' && <p className="demo-payment-note">Demo payment only. No real money will be charged.</p>}</article></main>;
+  const eventMode = event.mode ?? 'in_person';
+  return <main className="public-page"><header className="public-header"><Link className="brand-lockup" to="/" aria-label="Campusly home"><BrandLogo className="brand-logo--nav" /></Link><Link to="/events" className="text-link"><ArrowLeft size={16}/> All events</Link></header><article className="public-detail-card">
+    <div className="public-detail-tags"><span className={`event-type-pill event-type-pill--${event.type}`}>{event.type === 'official' ? 'Campus event' : event.club?.name ?? 'Club event'}</span><span className={`event-mode-pill event-mode-pill--${eventMode}`}>{eventMode === 'online' ? 'Online' : eventMode === 'hybrid' ? 'Hybrid' : 'In person'}</span></div>
+    <h1>{event.title}</h1><p className="public-detail-description">{event.description}</p>
+    <div className="event-meta event-meta--large"><span><CalendarDays size={16}/>{formatEventDateRange(event.startsAt, event.endsAt, { dateStyle: 'full' }, { timeStyle: 'short' })}</span><span>{eventMode === 'online' ? <Video size={16}/> : <MapPin size={16}/>}{eventMode === 'online' ? 'Online event' : event.venue}</span><span>{event.reservedCount} / {event.capacity} seats reserved</span></div>
+    {eventMode !== 'in_person' && <div className="public-online-note"><Video size={17}/><span>The meeting link is shared in Campusly with confirmed ticket holders.</span></div>}
+    <div className="event-policy-grid"><div><small>ELIGIBILITY</small><strong>{event.eligibility === 'all' ? 'Internal and external students' : event.eligibility === 'internal' ? 'MIT students' : 'External students'}</strong></div><div><small>REGISTRATION CLOSES</small><strong>{new Intl.DateTimeFormat('en-IN',{dateStyle:'medium',timeStyle:'short'}).format(new Date(event.registrationDeadline))}</strong></div><div><small>TICKET</small><strong>{event.ticketType === 'free' ? 'Free' : `₹${event.price} · simulated demo payment`}</strong></div><div><small>ATTENDANCE</small><strong>{event.attendanceEnabled === false ? 'Not tracked' : 'Check-in tracked · letter after attendance'}</strong></div></div>
+    <div className="public-detail-actions"><Link className="button button--primary" to={workspacePath} state={user ? undefined : { from: `/student/events/${event._id}` }}>{user ? 'Open in your workspace' : 'Sign in to register'} <ArrowRight size={15}/></Link>{!user && <Link className="button button--secondary" to="/signup">External student? Create an account</Link>}</div>{event.ticketType === 'paid' && <p className="demo-payment-note">Demo payment only. No real money will be charged.</p>}
+  </article></main>;
 }

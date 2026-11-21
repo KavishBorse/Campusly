@@ -109,6 +109,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .public-event-card .text-link, .text-link, .back-link { color: var(--antique-gold); }
 .public-event-card .text-link:hover, .text-link:hover, .back-link:hover { color: #E3C987; }
 .event-type-pill, .status-pill, .event-status-pill { color: var(--ivory-muted); background: #303847; border: 1px solid #465064; }
+.event-mode-pill { color: var(--ivory-muted); background: #303847; border-color: #465064; }
+.event-mode-pill--online { color: #C8D9F5; background: #1D2D43; border-color: #365273; }
+.event-mode-pill--hybrid { color: #E7D4A8; background: #3B3324; border-color: #6C5A35; }
 .event-type-pill--official { color: #E7D4A8; background: #3B3324; border-color: #6C5A35; }
 .event-type-pill--club { color: #E7D4A8; background: #30291D; border-color: #6C5A35; }
 .status-pill--published, .status-pill--confirmed, .status-pill--active, .status-pill--present { color: #B7D8C2; background: #1C3026; border-color: #365641; }
@@ -120,6 +123,11 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .public-detail-card { color: var(--ivory); background: var(--surface); border-color: var(--slate); box-shadow: 0 20px 56px #0005; }
 .public-detail-card h1 { color: var(--ivory); }
 .public-detail-description { color: var(--ivory-muted); }
+.public-online-note, .event-mode-note, .event-online-access { color: var(--ivory-muted); background: #080D12; border-color: var(--slate); }
+.public-online-note svg, .event-mode-note svg, .event-online-access-copy > svg { color: var(--antique-gold); }
+.event-online-access-copy strong { color: var(--ivory); }
+.event-online-access-copy span { color: var(--ivory-muted); }
+.landing-event-mode { display: inline-flex; align-items: center; width: fit-content; margin-top: 7px; padding: 4px 7px; border: 1px solid #C6A15B50; border-radius: 999px; color: #E7D4A8; background: #C6A15B18; font-size: 9px; font-weight: 800; letter-spacing: .8px; }
 .public-session-row { color: var(--ivory); background: var(--obsidian); border-color: var(--slate); }
 .public-session-row-main strong { color: var(--ivory); }
 .public-session-row-main span, .public-session-row small { color: var(--ivory-muted); }
@@ -171,6 +179,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .account-identity h2 { color: var(--ivory); }
 .account-identity div > span, .account-detail > span, .account-detail > strong { color: var(--ivory-muted); }
 .account-detail .account-status { color: #B7D8C2; }
+.profile-readonly-row { color: var(--ivory-muted); background: var(--obsidian); border-color: var(--slate); }
+.profile-readonly-row span, .profile-locked-note, .profile-account-footer { color: var(--ivory-muted); }
+.profile-readonly-row strong { color: var(--ivory); }
+.profile-account-footer { border-color: var(--slate); }
 .account-signout { color: var(--ivory-muted); background: var(--obsidian); border-color: var(--slate); }
 .account-signout:hover { color: var(--antique-gold); border-color: var(--antique-gold); background: var(--surface-raised); }
 .dashboard-event-row { border-color: var(--slate); }
@@ -234,6 +246,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .public-header-actions > a:not(.button) { white-space: nowrap; }
   .public-header-actions > .button { min-width: 79px; gap: 6px; padding: 0 8px; white-space: nowrap; }
   .public-event-card, .workspace-event-card, .tool-panel { border-radius: 14px; }
+  .event-online-access { align-items: stretch; flex-direction: column; }
+  .event-online-access > .button { justify-content: center; width: 100%; }
 }
 
 /* Keep login and external-account flows on the landing page's readable type scale. */

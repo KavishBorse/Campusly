@@ -10,6 +10,7 @@ type AttendanceLetter = {
   enrollmentId: string | null;
   collegeName: string | null;
   eventTitle: string;
+  mode?: 'in_person' | 'online' | 'hybrid';
   venue: string;
   eventStartsAt: string;
   eventEndsAt: string;
@@ -45,6 +46,12 @@ export function AttendanceLetterPage() {
     return <main className="attendance-letter-page"><div className="attendance-letter-actions"><Link className="text-link" to="/student/attendance"><ArrowLeft size={15}/> My attendance</Link></div><div className="tool-empty">{error || 'Preparing your attendance letter…'}</div></main>;
   }
 
+  const eventDescription = letter.mode === 'online'
+    ? <>attended <strong>{letter.eventTitle}</strong>, held online on {formatEventDateRange(letter.eventStartsAt, letter.eventEndsAt, { dateStyle: 'long' }, { timeStyle: 'short' })}.</>
+    : letter.mode === 'hybrid'
+      ? <>attended <strong>{letter.eventTitle}</strong>, held at <strong>{letter.venue}</strong> with an online option on {formatEventDateRange(letter.eventStartsAt, letter.eventEndsAt, { dateStyle: 'long' }, { timeStyle: 'short' })}.</>
+      : <>attended <strong>{letter.eventTitle}</strong>, held at <strong>{letter.venue}</strong> on {formatEventDateRange(letter.eventStartsAt, letter.eventEndsAt, { dateStyle: 'long' }, { timeStyle: 'short' })}.</>;
+
   return <main className="attendance-letter-page">
     <div className="attendance-letter-actions">
       <Link className="text-link" to="/student/attendance"><ArrowLeft size={15}/> My attendance</Link>
@@ -63,7 +70,7 @@ export function AttendanceLetterPage() {
       <p className="attendance-letter-body">
         This letter confirms that <strong>{letter.studentName}</strong>
         {letter.enrollmentId && <> (Enrollment ID: <strong>{letter.enrollmentId}</strong>)</>}
-        {letter.collegeName && <> from <strong>{letter.collegeName}</strong></>} attended <strong>{letter.eventTitle}</strong>, held at <strong>{letter.venue}</strong> on {formatEventDateRange(letter.eventStartsAt, letter.eventEndsAt, { dateStyle: 'long' }, { timeStyle: 'short' })}.
+        {letter.collegeName && <> from <strong>{letter.collegeName}</strong></>} {eventDescription}
       </p>
       <p className="attendance-letter-body">
         Campusly recorded this attendee as present at <strong>{letter.sessionsAttended} of {letter.sessionsOccurred}</strong> scheduled attendance {letter.sessionsOccurred === 1 ? 'session' : 'sessions'}.
