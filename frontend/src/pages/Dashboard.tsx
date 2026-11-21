@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Activity, ArrowUpRight, Bell, CalendarDays, CircleHelp, Compass, LayoutDashboard, LogOut, Mail, Menu, ShieldCheck, UserRound, Users, X } from 'lucide-react';
+import { Activity, ArrowUpRight, Bell, CalendarDays, CircleHelp, Compass, LogOut, Menu, ShieldCheck, Users, X } from 'lucide-react';
 import { api, messageOf } from '../api';
 import { useAuth, type Role } from '../auth/AuthContext';
 import { LoadingScreen } from '../ui/LoadingScreen';
 import { BrandLogo } from '../ui/BrandLogo';
 import { NotificationCountBadge, useUnreadNotificationCount } from '../ui/useUnreadNotificationCount';
+import { WorkspaceNavigation } from '../ui/WorkspaceNavigation';
 import { formatEventDateRange } from '../utils/eventDates';
 
 type Overview = Record<string, string | number>;
@@ -81,16 +82,7 @@ export function Dashboard({ role }: { role: Role }) {
         <a className="brand-lockup sidebar-brand" href="/" aria-label="Campusly home"><BrandLogo className="brand-logo--nav" /></a>
         <div className="workspace-chip"><span className="workspace-icon">{role === 'admin' ? <ShieldCheck size={15} /> : role === 'club' ? <Users size={15} /> : <Compass size={15} />}</span><span><small>WORKSPACE</small><strong>{content.label}</strong></span></div>
         <div className="nav-section-label">WORKSPACE</div>
-        <nav className="side-nav" aria-label="Main navigation">
-          <a className="side-nav-item side-nav-item--active" href={basePath}><LayoutDashboard size={17} /><span>Overview</span></a>
-          <a className="side-nav-item" href={`${basePath}/events`}><CalendarDays size={17} /><span>Events</span></a>
-          {role === 'admin' && <a className="side-nav-item" href={`${basePath}/accounts`}><Users size={17} /><span>Accounts</span></a>}
-          {(role === 'student' || role === 'external') && <a className="side-nav-item" href={`${basePath}/bookings`}><CalendarDays size={17} /><span>My bookings</span></a>}
-          {(role === 'student' || role === 'external' || role === 'club') && <a className="side-nav-item" href={`${basePath}/profile`}><UserRound size={17} /><span>My profile</span></a>}
-          <a className="side-nav-item side-nav-item--notifications" href={`${basePath}/notifications`} aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'}><Bell size={17} /><span>Notifications</span><NotificationCountBadge count={unreadCount} /></a>
-          {(role === 'student' || role === 'external') && <a className="side-nav-item" href={`${basePath}/attendance`}><Activity size={17} /><span>Attendance</span></a>}
-          {user.accountType === 'internal' && <a className="side-nav-item" href="/student/email"><Mail size={17} /><span>College email</span></a>}
-        </nav>
+        <WorkspaceNavigation role={role} user={user} unreadCount={unreadCount} onNavigate={() => setMenuOpen(false)} />
         <div className="sidebar-bottom"><div className="sidebar-note"><span className="sidebar-note-icon"><Activity size={15} /></span><div><strong>Your campus, connected.</strong><span>One place for every gathering.</span></div></div><a className="side-nav-item help-link" href="/events"><CircleHelp size={17} /><span>Browse campus events</span></a></div>
       </aside>
 
