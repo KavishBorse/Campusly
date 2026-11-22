@@ -500,6 +500,9 @@ a.side-nav-item { text-decoration: none; }
 .session-form, .notify-event-form { margin-top: 17px; padding-top: 16px; border-top: 1px solid #edf0f4; }
 .session-form .button, .notify-event-form .button { margin-top: 2px; }
 .attendance-manager-panel { margin-top: 2px; }
+.attendance-manager-panel > .panel-heading { gap: 12px; flex-wrap: wrap; }
+.attendance-report-link { min-height: 38px; white-space: nowrap; }
+.attendance-report-note { margin: -5px 0 15px; padding: 11px 13px; border-left: 3px solid #c6a15b; border-radius: 0 8px 8px 0; background: #fbf8f0; color: #68758a; font-size: 12px; line-height: 1.55; }
 .correction-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 15px; padding-top: 15px; border-top: 1px solid #edf0f4; }
 .correction-form .button { align-self: end; min-height: 41px; font-size: 10px; }
 .scan-card { position: relative; width: min(calc(100% - 32px), 480px); }

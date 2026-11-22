@@ -9,6 +9,7 @@ import { QrToken } from '../models/QrToken.js';
 import { AuditLog } from '../models/AuditLog.js';
 import { mayManage } from './events.js';
 import { requireAuth, enforcePasswordChange, requireRole } from '../middleware/auth.js';
+import { buildAttendanceReportHtml } from '../services/attendanceReport.js';
 
 const router = Router();
 const auth = [requireAuth, enforcePasswordChange];
@@ -32,6 +33,43 @@ router.get('/admin/reports/attendance.csv', ...auth, requireRole('admin'), async
     res.type('text/csv; charset=utf-8');
     res.set('Content-Disposition', 'attachment; filename="campusly-attendance.csv"');
     return res.send(rows.map((row) => row.map(csvCell).join(',')).join('\r\n'));
+  } catch (error) { return next(error); }
+});
+
+router.get('/events/:eventId/attendance/report', ...auth, requireRole('admin', 'club'), async (req, res, next) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.eventId)) return res.status(404).json({ error: 'Event not found.', code: 'NOT_FOUND' });
+    const event = await Event.findById(req.params.eventId).populate('club', 'name').lean();
+    if (!event || !await mayManage(req.user, event)) return res.status(404).json({ error: 'Event not found.', code: 'NOT_FOUND' });
+    if (event.status !== 'completed' || new Date(event.endsAt) > new Date()) {
+      return res.status(409).json({ error: 'The attendance report is available after an administrator marks the event complete.', code: 'EVENT_NOT_COMPLETED' });
+    }
+    if (event.attendanceEnabled === false) {
+      return res.status(409).json({ error: 'Attendance tracking was disabled for this event, so an attendance report is not available.', code: 'ATTENDANCE_DISABLED' });
+    }
+
+    const sessionIds = (event.sessions ?? [])
+      .filter((session) => session.status !== 'cancelled' && session.attendanceClosesAt <= new Date())
+      .map((session) => session._id);
+    const [registrations, attendance] = await Promise.all([
+      Registration.find({ event: event._id, status: 'confirmed' })
+        .populate('user', 'displayName username enrollmentId role accountType')
+        .sort({ registeredAt: 1 })
+        .lean(),
+      sessionIds.length
+        ? Attendance.find({ event: event._id, sessionId: { $in: sessionIds } })
+          .select('sessionId user status source recordedAt')
+          .lean()
+        : Promise.resolve([]),
+    ]);
+
+    const html = buildAttendanceReportHtml({ event, registrations, attendance });
+    const safeTitle = String(event.title).replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').slice(0, 48) || 'event';
+    res.set('Content-Type', 'text/html; charset=utf-8');
+    res.set('Content-Disposition', `inline; filename="campusly-${safeTitle}-attendance-report.html"`);
+    res.set('Cache-Control', 'private, no-store');
+    res.set('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'");
+    return res.send(html);
   } catch (error) { return next(error); }
 });
 
