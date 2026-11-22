@@ -302,6 +302,15 @@ a.side-nav-item { text-decoration: none; }
 .tool-search .button, .tool-toolbar select { min-height: 43px; font-size: 11px; }
 .workspace-event-grid, .public-event-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 15px; }
 .workspace-event-card, .public-event-card { display: flex; flex-direction: column; min-height: 265px; padding: 18px; border: 1px solid #e6e9ef; border-radius: 13px; background: #fff; box-shadow: 0 3px 10px rgba(26, 38, 65, .025); }
+.completed-events-section { margin-top: 25px; padding: 20px; border: 1px solid #e6e0d1; border-top: 4px solid #c6a15b; border-radius: 13px; background: linear-gradient(180deg, #fcfaf5 0%, #fff 150px); }
+.completed-events-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+.completed-events-heading h2 { margin: 6px 0 4px; color: #1e2b44; font-family: 'Manrope', sans-serif; font-size: 21px; letter-spacing: -.5px; }
+.completed-events-heading p { margin: 0; color: #7b879b; font-size: 12px; line-height: 1.5; }
+.completed-events-total, .completed-organizer-heading > span { flex: 0 0 auto; padding: 6px 10px; border: 1px solid #e5d7b7; border-radius: 20px; background: #fffaf0; color: #7e6536; font-size: 11px; font-weight: 700; }
+.completed-organizer-group + .completed-organizer-group { margin-top: 20px; padding-top: 18px; border-top: 1px solid #e9e5db; }
+.completed-organizer-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 11px; }
+.completed-organizer-heading h3 { margin: 0; color: #35445d; font-family: 'Manrope', sans-serif; font-size: 15px; font-weight: 700; }
+.completed-organizer-heading > span { padding: 4px 8px; font-size: 10px; }
 .workspace-event-card h2, .public-event-card h3 { margin: 16px 0 8px; color: #1e2b44; font-family: 'Manrope', sans-serif; font-size: 17px; line-height: 1.35; letter-spacing: -.4px; }
 .workspace-event-card > p, .public-event-card > p { display: -webkit-box; margin: 0 0 17px; overflow: hidden; color: #7a879a; font-size: 11px; line-height: 1.65; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
 .public-event-card-top, .event-detail-overline, .workspace-event-footer, .session-card-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
@@ -532,6 +541,8 @@ a.side-nav-item { text-decoration: none; }
   .workspace-event-grid, .public-event-grid, .attendance-summary-grid { grid-template-columns: 1fr; }
   .tool-toolbar { align-items: stretch; flex-direction: column; }
   .tool-toolbar select { width: 100%; }
+  .completed-events-section { padding: 15px; }
+  .completed-events-heading { align-items: flex-start; flex-direction: column; gap: 10px; }
   .public-header { min-height: 62px; padding: 0 16px; }
   .public-header-actions { gap: 10px; font-size: 9px; }
   .public-header-actions .button { min-height: 36px; padding: 0 10px; }

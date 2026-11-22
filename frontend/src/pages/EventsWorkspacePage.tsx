@@ -8,7 +8,7 @@ import { formatEventDateRange } from '../utils/eventDates';
 
 type SessionRecord = { _id: string; title: string; date: string; startsAt: string; endsAt: string; attendanceOpensAt: string; attendanceClosesAt: string; status: string; attendanceStatus?: string };
 type EventMode = 'in_person' | 'online' | 'hybrid';
-type EventRecord = { _id: string; type: string; title: string; description: string; mode?: EventMode; venue: string; meetingUrl?: string | null; startsAt: string; endsAt: string; registrationDeadline: string; capacity: number; reservedCount: number; eligibility: string; ticketType: 'free' | 'paid'; price: number; attendanceEnabled?: boolean; status: string; reviewFeedback?: string; club?: { name: string }; sessions?: SessionRecord[]; isEligible?: boolean; canManage?: boolean };
+type EventRecord = { _id: string; type: string; title: string; description: string; mode?: EventMode; venue: string; meetingUrl?: string | null; startsAt: string; endsAt: string; registrationDeadline: string; capacity: number; reservedCount: number; eligibility: string; ticketType: 'free' | 'paid'; price: number; attendanceEnabled?: boolean; status: string; reviewFeedback?: string; club?: { _id?: string; name: string }; createdBy?: { _id?: string; displayName: string }; sessions?: SessionRecord[]; isEligible?: boolean; canManage?: boolean };
 type RegistrationRecord = { _id: string; status: string; ticketCode?: string | null; user: { _id: string; username: string; displayName: string; email?: string; enrollmentId?: string; role: string } };
 type AttendanceRecord = { _id: string; sessionId: string; status: string; source: string; recordedAt: string; user: { _id: string; username: string; displayName: string } };
 type AuditRecord = { _id: string; action: string; reason: string; createdAt: string; actor?: { displayName: string; role: string }; before?: { status?: string } | null; after?: { status?: string } | null };
@@ -44,6 +44,50 @@ export function EventListPage({ role }: { role: Role }) {
   const [pageSize, setPageSize] = useState(100);
   const [total, setTotal] = useState(0);
   const base = baseFor(role);
+  const managerView = role === 'admin' || role === 'club';
+  const organizerName = (event: EventRecord) => event.type === 'club'
+    ? event.club?.name ?? 'Club organizer'
+    : event.createdBy?.displayName ?? 'Campus administration';
+  const mainEvents = managerView
+    ? filter === 'completed' ? [] : events.filter((event) => event.status !== 'completed')
+    : events;
+  const completedEvents = managerView
+    ? filter === 'completed' ? events : events.filter((event) => event.status === 'completed')
+    : [];
+  const completedGroups = completedEvents.reduce<Array<{ key: string; label: string; events: EventRecord[] }>>((groups, event) => {
+    const label = role === 'club' ? event.club?.name ?? 'Your club' : organizerName(event);
+    const key = event.type === 'club'
+      ? `club:${event.club?._id ?? label}`
+      : `admin:${event.createdBy?._id ?? label}`;
+    let group = groups.find((item) => item.key === key);
+    if (!group) {
+      group = { key, label, events: [] };
+      groups.push(group);
+    }
+    group.events.push(event);
+    return groups;
+  }, []);
+  const renderEventCard = (event: EventRecord) => {
+    const mode = event.mode ?? 'in_person';
+    return <article className="workspace-event-card" key={event._id}>
+      <div className="public-event-card-top">
+        <span className={`event-type-pill event-type-pill--${event.type}`}>{event.type === 'official' ? 'Campus event' : event.club?.name ?? 'Club event'}</span>
+        <span className={`event-mode-pill event-mode-pill--${mode}`}>{mode === 'online' ? 'Online' : mode === 'hybrid' ? 'Hybrid' : 'In person'}</span>
+        <span className={`status-pill status-pill--${event.status}`}>{event.status.replaceAll('_', ' ')}</span>
+      </div>
+      <h2>{event.title}</h2>
+      <p>{event.description}</p>
+      <div className="event-meta">
+        <span><CalendarDays size={14}/>{formatEventDateRange(event.startsAt, event.endsAt)}</span>
+        <span>{mode === 'online' ? <Video size={14}/> : <MapPin size={14}/>} {mode === 'online' ? 'Online event' : event.venue}</span>
+      </div>
+      <div className="workspace-event-footer">
+        <span>{event.reservedCount} / {event.capacity} seats · {event.ticketType === 'free' ? 'Free' : `₹${event.price} demo`}</span>
+        <Link className="text-link" to={`${base}/events/${event._id}`}>Open <ArrowRight size={14}/></Link>
+      </div>
+      {event.reviewFeedback && <div className="review-feedback"><strong>Review feedback</strong><span>{event.reviewFeedback}</span></div>}
+    </article>;
+  };
   async function load(search = query, status = filter, requestedPage = 1) {
     setLoading(true);
     try {
@@ -62,10 +106,24 @@ export function EventListPage({ role }: { role: Role }) {
     finally { setLoading(false); }
   }
   useEffect(() => { void load(); }, [role]);
-  return <section className="tool-page"><div className="tool-page-heading"><div><span className="section-kicker">{role === 'admin' ? 'CAMPUS EVENT MANAGEMENT' : role === 'club' ? 'YOUR CLUB PROGRAMME' : 'DISCOVER YOUR CAMPUS'}</span><h1>{role === 'admin' ? 'Events and approvals.' : role === 'club' ? 'Your events.' : 'Find your next thing.'}</h1><p>{role === 'admin' ? 'Publish official events and review club submissions.' : role === 'club' ? 'Create an event draft, submit it, and manage approved gatherings.' : 'Browse events you can attend and keep your tickets in one place.'}</p></div>{(role === 'admin' || role === 'club') && <Link className="button button--primary" to={`${base}/events/new`}><CalendarDays size={16}/> Create event</Link>}</div>
+  return <section className="tool-page"><div className="tool-page-heading"><div><span className="section-kicker">{role === 'admin' ? 'CAMPUS EVENT MANAGEMENT' : role === 'club' ? 'YOUR CLUB PROGRAMME' : 'DISCOVER YOUR CAMPUS'}</span><h1>{role === 'admin' ? 'Events and approvals.' : role === 'club' ? 'Your events.' : 'Find your next thing.'}</h1><p>{role === 'admin' ? 'Publish official events and review club submissions.' : role === 'club' ? 'Create an event draft, submit it, and manage approved gatherings.' : 'Browse events you can attend and keep your tickets in one place.'}</p></div>{managerView && <Link className="button button--primary" to={`${base}/events/new`}><CalendarDays size={16}/> Create event</Link>}</div>
     <div className="tool-toolbar"><form className="tool-search" onSubmit={(event) => { event.preventDefault(); void load(query, filter, 1); }}><input aria-label="Search events" placeholder="Search events or venues" value={query} onChange={(event) => setQuery(event.target.value)}/><button className="button button--secondary">Search</button></form>{(role === 'admin' || role === 'club') && <select aria-label="Filter events" value={filter} onChange={(event) => { setFilter(event.target.value); void load(query, event.target.value, 1); }}><option value="all">All statuses</option><option value="published">Published</option><option value="pending_approval">Pending approval</option><option value="draft">Draft</option><option value="changes_requested">Changes requested</option><option value="rejected">Rejected</option><option value="cancelled">Cancelled</option><option value="completed">Completed</option></select>}</div>
-    {error && <div className="form-alert" role="alert">{error}<button className="button button--secondary button--small" type="button" onClick={() => void load(query, filter, page)}>Retry</button></div>}{loading ? <div className="tool-empty">Loading events…</div> : events.length ? <div className="workspace-event-grid">{events.map((event) => { const mode = event.mode ?? 'in_person'; return <article className="workspace-event-card" key={event._id}><div className="public-event-card-top"><span className={`event-type-pill event-type-pill--${event.type}`}>{event.type === 'official' ? 'Campus event' : event.club?.name ?? 'Club event'}</span><span className={`event-mode-pill event-mode-pill--${mode}`}>{mode === 'online' ? 'Online' : mode === 'hybrid' ? 'Hybrid' : 'In person'}</span><span className={`status-pill status-pill--${event.status}`}>{event.status.replaceAll('_', ' ')}</span></div><h2>{event.title}</h2><p>{event.description}</p><div className="event-meta"><span><CalendarDays size={14}/>{formatEventDateRange(event.startsAt, event.endsAt)}</span><span>{mode === 'online' ? <Video size={14}/> : <MapPin size={14}/>}{mode === 'online' ? 'Online event' : event.venue}</span></div><div className="workspace-event-footer"><span>{event.reservedCount} / {event.capacity} seats · {event.ticketType === 'free' ? 'Free' : `₹${event.price} demo`}</span><Link className="text-link" to={`${base}/events/${event._id}`}>Open <ArrowRight size={14}/></Link></div>{event.reviewFeedback && <div className="review-feedback"><strong>Review feedback</strong><span>{event.reviewFeedback}</span></div>}</article>; })}</div> : <div className="tool-empty"><CalendarDays size={24}/><strong>No events match this view.</strong><span>Create a new event or change the status filter.</span></div>}
-    {(role === 'admin' || role === 'club') && total > pageSize && <div className="tool-toolbar"><button className="button button--secondary" type="button" disabled={loading || page <= 1} onClick={() => void load(query, filter, page - 1)}>Previous</button><span>{total} events · Page {page} of {Math.ceil(total / pageSize)}</span><button className="button button--secondary" type="button" disabled={loading || page * pageSize >= total} onClick={() => void load(query, filter, page + 1)}>Next</button></div>}
+    {error && <div className="form-alert" role="alert">{error}<button className="button button--secondary button--small" type="button" onClick={() => void load(query, filter, page)}>Retry</button></div>}
+    {loading ? <div className="tool-empty">Loading events…</div> : <>
+      {mainEvents.length > 0 && <div className="workspace-event-grid">{mainEvents.map(renderEventCard)}</div>}
+      {completedEvents.length > 0 && <section className="completed-events-section">
+        <header className="completed-events-heading">
+          <div><span className="section-kicker">EVENT ARCHIVE</span><h2>Completed events</h2><p>Past events are grouped by the club or administrator who created them.</p></div>
+          <span className="completed-events-total">{completedEvents.length} {completedEvents.length === 1 ? 'event' : 'events'}</span>
+        </header>
+        {completedGroups.map((group) => <section className="completed-organizer-group" key={group.key}>
+          <div className="completed-organizer-heading"><h3>{group.label}</h3><span>{group.events.length} {group.events.length === 1 ? 'event' : 'events'}</span></div>
+          <div className="workspace-event-grid">{group.events.map(renderEventCard)}</div>
+        </section>)}
+      </section>}
+      {!mainEvents.length && !completedEvents.length && <div className="tool-empty"><CalendarDays size={24}/><strong>No events match this view.</strong><span>Create an event or choose another status filter.</span></div>}
+    </>}
+    {managerView && total > pageSize && <div className="tool-toolbar"><button className="button button--secondary" type="button" disabled={loading || page <= 1} onClick={() => void load(query, filter, page - 1)}>Previous</button><span>{total} events · Page {page} of {Math.ceil(total / pageSize)}</span><button className="button button--secondary" type="button" disabled={loading || page * pageSize >= total} onClick={() => void load(query, filter, page + 1)}>Next</button></div>}
   </section>;
 }
 
