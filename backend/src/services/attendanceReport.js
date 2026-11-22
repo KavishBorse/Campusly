@@ -70,9 +70,12 @@ export function buildAttendanceReportHtml({ event, registrations, attendance, ge
   const sessionRows = activeSessions.map((session, index) => {
     const present = registered.filter((registration) => recordMap.get(`${session._id}:${registration.user._id}`)?.status === 'present').length;
     const rate = registered.length ? `${Math.round((present / registered.length) * 100)}%` : 'N/A';
+    const sessionMode = session.mode ?? (event.mode === 'online' ? 'online' : 'in_person');
+    const sessionVenue = sessionMode === 'online' ? 'Online' : session.venue || event.venue || 'Not provided';
     return `<tr>
       <td><span class="session-number">${String(index + 1).padStart(2, '0')}</span> ${escapeHtml(session.title)}</td>
       <td>${escapeHtml(dateTime(session.startsAt))} – ${escapeHtml(dateTime(session.endsAt))}</td>
+      <td>${escapeHtml(modeLabel(sessionMode))} · ${escapeHtml(sessionVenue)}</td>
       <td>${present} / ${registered.length}</td>
       <td>${rate}</td>
     </tr>`;
@@ -85,12 +88,14 @@ export function buildAttendanceReportHtml({ event, registrations, attendance, ge
       .map((registration) => participantRow(registration, recordMap.get(`${session._id}:${registration.user._id}`)))
       .join('');
     const present = registered.filter((registration) => recordMap.get(`${session._id}:${registration.user._id}`)?.status === 'present').length;
+    const sessionMode = session.mode ?? (event.mode === 'online' ? 'online' : 'in_person');
+    const sessionVenue = sessionMode === 'online' ? 'Online session' : session.venue || event.venue || 'Not provided';
     return `<section class="session-detail">
       <div class="session-heading">
         <div><span class="eyebrow">SESSION ${String(index + 1).padStart(2, '0')}</span><h2>${escapeHtml(session.title)}</h2></div>
         <div class="session-count"><strong>${present}</strong><span>of ${registered.length} present</span></div>
       </div>
-      <p class="session-meta"><strong>Event time</strong> ${escapeHtml(dateTime(session.startsAt))} – ${escapeHtml(dateTime(session.endsAt))}<br><strong>Check-in window</strong> ${escapeHtml(dateTime(session.attendanceOpensAt))} – ${escapeHtml(dateTime(session.attendanceClosesAt))}</p>
+      <p class="session-meta"><strong>Format</strong> ${escapeHtml(modeLabel(sessionMode))} · ${escapeHtml(sessionVenue)}<br><strong>Event time</strong> ${escapeHtml(dateTime(session.startsAt))} – ${escapeHtml(dateTime(session.endsAt))}<br><strong>Check-in window</strong> ${escapeHtml(dateTime(session.attendanceOpensAt))} – ${escapeHtml(dateTime(session.attendanceClosesAt))}</p>
       ${registered.length ? `<div class="table-wrap"><table><thead><tr><th>Participant</th><th>Enrollment ID / username</th><th>Account</th><th>Result</th><th>Recorded (IST)</th><th>Method</th></tr></thead><tbody>${rows}</tbody></table></div>` : '<p class="empty">There were no confirmed participants for this session.</p>'}
     </section>`;
   }).join('');
@@ -191,7 +196,7 @@ export function buildAttendanceReportHtml({ event, registrations, attendance, ge
     <p class="note">${escapeHtml(summary)} “No check-in” means no attendance record was present when this report was generated. The displayed results include saved corrections and are a snapshot of Campusly records at preparation time.</p>
 
     <div class="section-title"><h2>Session overview</h2><span>Times shown in Indian Standard Time (IST)</span></div>
-    ${activeSessions.length ? `<div class="table-wrap"><table><thead><tr><th>Session</th><th>Scheduled time</th><th>Present / confirmed</th><th>Attendance</th></tr></thead><tbody>${sessionRows}</tbody></table></div>` : '<p class="empty">No completed attendance sessions were recorded for this event.</p>'}
+    ${activeSessions.length ? `<div class="table-wrap"><table><thead><tr><th>Session</th><th>Scheduled time</th><th>Format / location</th><th>Present / confirmed</th><th>Attendance</th></tr></thead><tbody>${sessionRows}</tbody></table></div>` : '<p class="empty">No completed attendance sessions were recorded for this event.</p>'}
     ${sessionSections}
     ${noSessionRoster}
     <footer><span>Campusly · Event organizer copy</span><span>${escapeHtml(filenameTitle)} · Generated ${escapeHtml(generatedLabel)} IST</span></footer>

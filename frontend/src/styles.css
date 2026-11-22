@@ -374,9 +374,15 @@ a.side-nav-item { text-decoration: none; }
 .public-session-list > .section-kicker { display: block; margin-bottom: 2px; }
 .public-session-row { display: flex; flex-direction: column; gap: 7px; padding: 13px 15px; border: 1px solid #e5e8ef; border-radius: 10px; background: #f7f8fb; }
 .public-session-row-main { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.public-session-row-main { flex-wrap: wrap; }
 .public-session-row-main strong { color: #35445d; font-size: 13px; line-height: 1.45; }
 .public-session-row-main span { color: #64718a; font-size: 12px; line-height: 1.5; text-align: right; }
+.public-session-row-main .session-location-label { flex-basis: 100%; color: #7b879b; font-size: 11px; text-align: left; }
+.public-session-row-access { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .public-session-row small { color: #78859a; font-size: 11px; line-height: 1.5; }
+.session-format-details { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 10px 11px; border: 1px solid #e9edf4; border-radius: 8px; background: #f8f9fc; }
+.session-format-details > span { display: inline-flex; align-items: center; gap: 7px; color: #63718a; font-size: 11px; }
+.session-format-details > span svg { color: #6479d1; }
 .event-policy-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
 .event-policy-grid > div { display: flex; flex-direction: column; gap: 7px; min-height: 70px; padding: 12px; border-radius: 9px; background: #f7f8fb; }
 .event-policy-grid small, .booking-ticket small { color: #929caf; font-size: 8px; font-weight: 700; letter-spacing: 1px; }
@@ -558,6 +564,7 @@ a.side-nav-item { text-decoration: none; }
   .event-meta--large { flex-direction: column; gap: 9px; }
   .public-session-row-main { align-items: flex-start; flex-direction: column; gap: 4px; }
   .public-session-row-main span { text-align: left; }
+  .public-session-row-access { align-items: flex-start; flex-direction: column; gap: 6px; }
   .event-policy-grid { grid-template-columns: 1fr; }
   .public-detail-actions { flex-direction: column; }
   .public-detail-actions .button { width: 100%; }

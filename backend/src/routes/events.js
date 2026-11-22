@@ -39,11 +39,12 @@ function canViewPublishedEvent(event, user, manager) {
   return ['all', 'external'].includes(event.eligibility);
 }
 
-function withSessionStates(event, now = Date.now()) {
+function withSessionStates(event, now = Date.now(), includeMeetingLinks = true) {
   return {
     ...event,
     sessions: (event.sessions ?? []).map((session) => ({
       ...session,
+      meetingUrl: includeMeetingLinks ? session.meetingUrl ?? '' : null,
       attendanceStatus: session.status === 'cancelled'
         ? 'cancelled'
         : now < new Date(session.attendanceOpensAt).getTime()
@@ -139,7 +140,7 @@ router.get('/', optionalAuth, async (req, res, next) => {
       filter.$or = [{ title: pattern }, { description: pattern }, { venue: pattern }];
     }
     const events = await Event.find(filter).populate('club', 'name slug').sort({ startsAt: 1 }).limit(100).lean();
-    return res.json({ events: events.map((event) => ({ ...withSessionStates(event), isEligible: eligibleFor(event, req.user) })) });
+    return res.json({ events: events.map((event) => ({ ...withSessionStates(event, Date.now(), false), isEligible: eligibleFor(event, req.user) })) });
   } catch (error) { return next(error); }
 });
 
@@ -178,7 +179,8 @@ router.get('/:eventId', optionalAuth, async (req, res, next) => {
       ? Boolean(await Registration.exists({ event: event._id, user: req.user._id, status: 'confirmed' }))
       : false;
     const attendeeCanJoin = confirmedRegistration && event.status === 'published' && event.endsAt > new Date();
-    return res.json({ event: { ...withSessionStates(event), meetingUrl: manager || attendeeCanJoin ? event.meetingUrl : null, isEligible: eligibleFor(event, req.user), canManage: manager } });
+    const mayAccessMeetingLinks = manager || attendeeCanJoin;
+    return res.json({ event: { ...withSessionStates(event, Date.now(), mayAccessMeetingLinks), meetingUrl: mayAccessMeetingLinks ? event.meetingUrl : null, isEligible: eligibleFor(event, req.user), canManage: manager } });
   } catch (error) { return next(error); }
 });
 
@@ -223,6 +225,11 @@ router.patch('/:eventId', ...auth, requireRole('admin', 'club'), async (req, res
     if (event.status === 'cancelled' || event.status === 'completed') return res.status(409).json({ error: 'This event can no longer be edited.', code: 'EVENT_LOCKED' });
     const parsed = eventPayload({ ...event.toObject(), ...req.body });
     if (parsed.error) return res.status(400).json({ error: parsed.error, code: 'INVALID_INPUT' });
+    const sessionFormatConflict = event.sessions.some((session) => {
+      const sessionMode = session.mode ?? (event.mode === 'online' ? 'online' : 'in_person');
+      return parsed.value.mode !== 'hybrid' && parsed.value.mode !== sessionMode;
+    });
+    if (sessionFormatConflict) return res.status(409).json({ error: 'The updated event format conflicts with an existing session. Keep the event hybrid or cancel and recreate sessions to match its format.', code: 'SESSION_FORMAT_CONFLICT' });
     const dateFieldsChanged = ['startsAt', 'endsAt', 'registrationDeadline'].some((key) => String(event[key]) !== String(parsed.value[key]));
     if (dateFieldsChanged && (parsed.value.startsAt <= new Date() || parsed.value.registrationDeadline <= new Date())) {
       return res.status(400).json({ error: 'Updated event dates and registration deadline must be in the future.', code: 'EVENT_DATES_IN_PAST' });

@@ -14,6 +14,14 @@ import { buildAttendanceReportHtml } from '../services/attendanceReport.js';
 const router = Router();
 const auth = [requireAuth, enforcePasswordChange];
 const hashToken = (value) => createHash('sha256').update(value).digest('hex');
+const isHttpsUrl = (value) => {
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === 'https:' && Boolean(parsed.hostname);
+  } catch {
+    return false;
+  }
+};
 const csvCell = (value) => {
   let text = String(value ?? '').replace(/[\r\n]+/g, ' ');
   if (/^[=+\-@\t]/.test(text)) text = `'${text}`;
@@ -76,11 +84,18 @@ router.get('/events/:eventId/attendance/report', ...auth, requireRole('admin', '
 router.post('/events/:eventId/sessions', ...auth, requireRole('admin', 'club'), async (req, res, next) => {
   try {
     if (!mongoose.isValidObjectId(req.params.eventId)) return res.status(404).json({ error: 'Event not found.', code: 'NOT_FOUND' });
-    const event = await Event.findById(req.params.eventId);
+    const event = await Event.findById(req.params.eventId).select('+meetingUrl');
     if (!event || !await mayManage(req.user, event)) return res.status(404).json({ error: 'Event not found.', code: 'NOT_FOUND' });
     if (event.attendanceEnabled === false) return res.status(409).json({ error: 'Attendance is disabled for this event.', code: 'ATTENDANCE_DISABLED' });
     if (['cancelled', 'completed'].includes(event.status)) return res.status(409).json({ error: 'Sessions cannot be added to a cancelled or completed event.', code: 'EVENT_LOCKED' });
     const title = typeof req.body?.title === 'string' ? req.body.title.trim() : '';
+    const eventMode = event.mode ?? 'in_person';
+    const mode = req.body?.mode ?? (eventMode === 'online' ? 'online' : 'in_person');
+    const modeAllowed = eventMode === 'hybrid' ? ['in_person', 'online'].includes(mode) : mode === eventMode;
+    const venueInput = typeof req.body?.venue === 'string' ? req.body.venue.trim() : '';
+    const venue = mode === 'in_person' ? venueInput || event.venue || '' : '';
+    const suppliedMeetingUrl = typeof req.body?.meetingUrl === 'string' ? req.body.meetingUrl.trim() : '';
+    const meetingUrl = mode === 'online' ? suppliedMeetingUrl || event.meetingUrl || '' : '';
     const date = new Date(req.body?.date);
     const startsAt = new Date(req.body?.startsAt);
     const endsAt = new Date(req.body?.endsAt);
@@ -88,10 +103,10 @@ router.post('/events/:eventId/sessions', ...auth, requireRole('admin', 'club'), 
     const attendanceClosesAt = new Date(req.body?.attendanceClosesAt);
     const values = [date, startsAt, endsAt, attendanceOpensAt, attendanceClosesAt];
     const attendanceWithinSession = attendanceOpensAt >= startsAt && attendanceClosesAt <= endsAt;
-    if (title.length < 2 || title.length > 120 || values.some((item) => Number.isNaN(+item)) || startsAt >= endsAt || attendanceOpensAt >= attendanceClosesAt || !attendanceWithinSession || date < new Date(new Date(event.startsAt).setHours(0, 0, 0, 0)) || date > new Date(new Date(event.endsAt).setHours(23, 59, 59, 999)) || startsAt < event.startsAt || endsAt > event.endsAt) {
-      return res.status(400).json({ error: 'Check the session title, event dates, times, and keep its attendance window inside the session.', code: 'INVALID_INPUT' });
+    if (title.length < 2 || title.length > 120 || !modeAllowed || (mode === 'in_person' && (venue.length < 2 || venue.length > 240)) || (mode === 'online' && (meetingUrl.length > 500 || !isHttpsUrl(meetingUrl))) || values.some((item) => Number.isNaN(+item)) || startsAt >= endsAt || attendanceOpensAt >= attendanceClosesAt || !attendanceWithinSession || date < new Date(new Date(event.startsAt).setHours(0, 0, 0, 0)) || date > new Date(new Date(event.endsAt).setHours(23, 59, 59, 999)) || startsAt < event.startsAt || endsAt > event.endsAt) {
+      return res.status(400).json({ error: 'Check the session format, venue or HTTPS meeting link, title, dates, and times. Keep the session and check-in window inside the event schedule.', code: 'INVALID_INPUT' });
     }
-    event.sessions.push({ title, date, startsAt, endsAt, attendanceOpensAt, attendanceClosesAt });
+    event.sessions.push({ title, mode, venue, meetingUrl, date, startsAt, endsAt, attendanceOpensAt, attendanceClosesAt });
     await event.save();
     return res.status(201).json({ session: event.sessions.at(-1) });
   } catch (error) { return next(error); }

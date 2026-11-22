@@ -2,6 +2,9 @@ import mongoose from 'mongoose';
 
 const sessionSchema = new mongoose.Schema({
   title: { type: String, required: true, trim: true, maxlength: 120 },
+  mode: { type: String, enum: ['in_person', 'online'] },
+  venue: { type: String, trim: true, maxlength: 240, default: '' },
+  meetingUrl: { type: String, trim: true, maxlength: 500, default: '' },
   date: { type: Date, required: true },
   startsAt: { type: Date, required: true },
   endsAt: { type: Date, required: true },
