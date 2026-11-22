@@ -324,7 +324,7 @@ export function EventDetailPage({ role }: { role: Role }) {
       mode,
       venue: mode === 'in_person' ? sessionForm.venue.trim() || event?.venue || '' : '',
       meetingUrl: mode === 'online' ? sessionForm.meetingUrl.trim() || event?.meetingUrl || '' : '',
-      date: new Date(`${sessionForm.date}T12:00:00`).toISOString(),
+      date: sessionForm.date,
       startsAt: new Date(sessionForm.startsAt).toISOString(),
       endsAt: new Date(sessionForm.endsAt).toISOString(),
       attendanceOpensAt: new Date(sessionForm.attendanceOpensAt).toISOString(),

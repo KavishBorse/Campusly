@@ -10,6 +10,7 @@ import { AuditLog } from '../models/AuditLog.js';
 import { mayManage } from './events.js';
 import { requireAuth, enforcePasswordChange, requireRole } from '../middleware/auth.js';
 import { buildAttendanceReportHtml } from '../services/attendanceReport.js';
+import { campusDateKey, parseCampusDate } from '../services/campusDate.js';
 
 const router = Router();
 const auth = [requireAuth, enforcePasswordChange];
@@ -96,16 +97,21 @@ router.post('/events/:eventId/sessions', ...auth, requireRole('admin', 'club'), 
     const venue = mode === 'in_person' ? venueInput || event.venue || '' : '';
     const suppliedMeetingUrl = typeof req.body?.meetingUrl === 'string' ? req.body.meetingUrl.trim() : '';
     const meetingUrl = mode === 'online' ? suppliedMeetingUrl || event.meetingUrl || '' : '';
-    const date = new Date(req.body?.date);
+    const { key: sessionDateKey, date } = parseCampusDate(req.body?.date);
     const startsAt = new Date(req.body?.startsAt);
     const endsAt = new Date(req.body?.endsAt);
     const attendanceOpensAt = new Date(req.body?.attendanceOpensAt);
     const attendanceClosesAt = new Date(req.body?.attendanceClosesAt);
     const values = [date, startsAt, endsAt, attendanceOpensAt, attendanceClosesAt];
-    const attendanceWithinSession = attendanceOpensAt >= startsAt && attendanceClosesAt <= endsAt;
-    if (title.length < 2 || title.length > 120 || !modeAllowed || (mode === 'in_person' && (venue.length < 2 || venue.length > 240)) || (mode === 'online' && (meetingUrl.length > 500 || !isHttpsUrl(meetingUrl))) || values.some((item) => Number.isNaN(+item)) || startsAt >= endsAt || attendanceOpensAt >= attendanceClosesAt || !attendanceWithinSession || date < new Date(new Date(event.startsAt).setHours(0, 0, 0, 0)) || date > new Date(new Date(event.endsAt).setHours(23, 59, 59, 999)) || startsAt < event.startsAt || endsAt > event.endsAt) {
-      return res.status(400).json({ error: 'Check the session format, venue or HTTPS meeting link, title, dates, and times. Keep the session and check-in window inside the event schedule.', code: 'INVALID_INPUT' });
-    }
+    if (title.length < 2 || title.length > 120) return res.status(400).json({ error: 'Enter a session title between 2 and 120 characters.', code: 'INVALID_INPUT' });
+    if (!modeAllowed) return res.status(400).json({ error: 'Session format must match the event. Choose Hybrid on the event to mix online and in-person sessions.', code: 'INVALID_INPUT' });
+    if (mode === 'in_person' && (venue.length < 2 || venue.length > 240)) return res.status(400).json({ error: 'Enter a session location between 2 and 240 characters.', code: 'INVALID_INPUT' });
+    if (mode === 'online' && (meetingUrl.length > 500 || !isHttpsUrl(meetingUrl))) return res.status(400).json({ error: 'Enter a valid HTTPS session meeting link, or leave it blank to reuse the event link.', code: 'INVALID_INPUT' });
+    if (values.some((item) => Number.isNaN(+item))) return res.status(400).json({ error: 'Enter a valid session date and all session/check-in times.', code: 'INVALID_INPUT' });
+    if (startsAt >= endsAt) return res.status(400).json({ error: 'The session end must be later than its start. Check the AM/PM values.', code: 'INVALID_INPUT' });
+    if (attendanceOpensAt >= attendanceClosesAt || attendanceOpensAt < startsAt || attendanceClosesAt > endsAt) return res.status(400).json({ error: 'The check-in window must start after the session starts and close by the session end.', code: 'INVALID_INPUT' });
+    if (startsAt < event.startsAt || endsAt > event.endsAt) return res.status(400).json({ error: 'The full session must fit inside the event start and end times.', code: 'INVALID_INPUT' });
+    if (sessionDateKey !== campusDateKey(startsAt)) return res.status(400).json({ error: 'Session date must match the date shown in Starts at (India time).', code: 'INVALID_INPUT' });
     event.sessions.push({ title, mode, venue, meetingUrl, date, startsAt, endsAt, attendanceOpensAt, attendanceClosesAt });
     await event.save();
     return res.status(201).json({ session: event.sessions.at(-1) });
