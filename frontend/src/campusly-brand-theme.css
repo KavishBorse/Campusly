@@ -131,6 +131,18 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .public-session-row { color: var(--ivory); background: var(--obsidian); border-color: var(--slate); }
 .public-session-row-main strong { color: var(--ivory); }
 .public-session-row-main span, .public-session-row small { color: var(--ivory-muted); }
+.completed-events-section { color: var(--ivory); border-color: var(--slate); border-top-color: var(--antique-gold); background: radial-gradient(ellipse at 100% 0%, #C6A15B0D, transparent 38%), linear-gradient(180deg, #202630, #161B22 150px); }
+.completed-events-heading h2 { color: var(--ivory); }
+.completed-events-heading p { color: var(--ivory-muted); }
+.completed-events-total, .completed-organizer-heading > span { color: #E7D4A8; background: #3B3324; border-color: #6C5A35; }
+.completed-organizer-group + .completed-organizer-group { border-top-color: var(--slate); }
+.completed-organizer-heading h3 { color: var(--ivory); }
+.session-format-details { color: var(--ivory-muted); background: var(--obsidian); border-color: var(--slate); }
+.session-format-details > span { color: var(--ivory-muted); }
+.session-format-details > span svg { color: var(--antique-gold); }
+.review-feedback { color: #E7D4A8; background: #28251D; border: 1px solid #6C5A35; }
+.review-feedback strong { color: var(--ivory); }
+.attendance-report-note { color: var(--ivory-muted); background: #28251D; }
 .event-policy-grid > div { background: var(--obsidian); border: 1px solid var(--slate); }
 .event-policy-grid small, .booking-ticket small { color: var(--antique-gold); }
 .event-policy-grid strong { color: var(--ivory); }
